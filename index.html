@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LKBE Benešov – P2002 flight sim</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="gl"></canvas>
+    <canvas id="hud"></canvas>
+    <canvas id="panel"></canvas>
+    <canvas id="map"></canvas>
+    <div id="msg"></div>
+    <div id="radio"></div>
+    <div id="loading"><div class="box"><h1>LKBE Benešov</h1><p id="loadtxt">Loading…</p></div></div>
+    <div id="help" class="hidden"></div>
+    <div id="busted" class="hidden"><div class="big">BUSTED</div><div class="sub"></div></div>
+    <div id="picker"></div>
+    <div id="credit">© ČÚZK · © OpenStreetMap contributors · P2002 model © helijah (GPL)</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

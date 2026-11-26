@@ -1,0 +1,5 @@
+Tecnam P2002 Sierra 3D model, textures and liveries
+Author: Emmanuel BARANGER (helijah), 2022
+Source: FlightGear FGAddon hangar, Aircraft/Tecnam-P2002-Sierra
+        https://sourceforge.net/p/flightgear/fgaddon/HEAD/tree/trunk/Aircraft/Tecnam-P2002-Sierra/
+Licence: GNU GPL v2 or later (see COPYING). Files are used unmodified (AC3D + PNG).

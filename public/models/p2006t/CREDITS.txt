@@ -1,0 +1,4 @@
+Tecnam P2006T (MMA) 3D model, textures and liveries
+Author: Emmanuel BARANGER (helijah), 2014/2023; FlightGear addon: Paolo AMOROSO
+Source: FlightGear FGAddon hangar, Aircraft/Tecnam-P2006T
+Licence: GNU GPL v2 or later (see COPYING). Files are used unmodified (AC3D + PNG).

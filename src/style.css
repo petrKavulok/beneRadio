@@ -1,0 +1,36 @@
+html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: system-ui, -apple-system, sans-serif; }
+canvas { display: block; position: absolute; }
+#gl { inset: 0; width: 100%; height: 100%; }
+#hud { inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#panel { left: 0; right: 0; bottom: 0; width: 100%; pointer-events: none; }
+#map { right: 12px; top: 12px; width: 300px; height: 300px; border-radius: 10px; box-shadow: 0 2px 12px #0008; pointer-events: none; }
+#map.big { width: min(80vh, 80vw); height: min(80vh, 80vw); right: 50%; top: 50%; transform: translate(50%, -50%); }
+#msg { position: absolute; left: 12px; top: 12px; max-width: 460px; color: #fff; background: #0009; padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.45; white-space: pre-line; pointer-events: none; }
+#msg b { color: #ffd54a; }
+#radio { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; color: #9fffb0; background: #000b; padding: 6px 12px; border-radius: 8px; font: 13px/1.4 ui-monospace, Menlo, monospace; max-width: 60vw; display: none; pointer-events: none; }
+#loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(#2a4058, #0b1520); color: #fff; z-index: 10; }
+#loading .box { text-align: center; }
+#loading h1 { margin: 0 0 8px; font-weight: 600; letter-spacing: 0.04em; }
+#help { position: absolute; inset: 0; margin: auto; width: min(720px, 92vw); height: fit-content; max-height: 90vh; overflow: auto; background: #0d1824ee; color: #e8eef5; padding: 20px 26px; border-radius: 14px; font-size: 14px; z-index: 5; }
+#help h2 { margin-top: 0; }
+#help table { border-collapse: collapse; width: 100%; }
+#help td { padding: 3px 8px; border-bottom: 1px solid #ffffff14; }
+#help td:first-child { font-family: ui-monospace, Menlo, monospace; color: #ffd54a; white-space: nowrap; }
+.hidden { display: none !important; }
+#credit { position: absolute; right: 8px; bottom: calc(19vh + 4px); color: #fffa; font-size: 10px; text-shadow: 0 0 3px #000; pointer-events: none; }
+#picker { position: absolute; left: 12px; bottom: calc(19vh + 8px); display: flex; gap: 10px; background: #0009; color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 12px; z-index: 3; }
+#picker select { margin-left: 4px; font-size: 12px; background: #1b2633; color: #fff; border: 1px solid #ffffff33; border-radius: 5px; padding: 2px 4px; }
+#picker input { margin-left: 4px; font-size: 12px; background: #1b2633; color: #fff; border: 1px solid #ffffff33; border-radius: 5px; padding: 2px 4px; text-transform: uppercase; font-family: ui-monospace, Menlo, monospace; }
+#radio.alert { animation: atcAlert 2.4s ease-out; }
+@keyframes atcAlert { 0%, 30% { box-shadow: 0 0 0 3px #ffb000, 0 0 18px #ffb000aa; color: #fff3c4; } 100% { box-shadow: 0 0 0 0 transparent; } }
+#picker .tgl { font-size: 12px; background: #1b2633; color: #fff; border: 1px solid #ffffff33; border-radius: 5px; padding: 2px 8px; cursor: pointer; }
+#picker .tgl.off { color: #ff9a7a; border-color: #ff9a7a66; }
+#radio div { transition: opacity 0.15s linear; }
+#radio div.warn { color: #ffd27a; }
+#busted { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; z-index: 6; }
+#busted .big { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Franklin Gothic Heavy', sans-serif; font-size: min(22vh, 18vw); letter-spacing: 0.04em; color: #f2f2ee;
+  -webkit-text-stroke: 0.045em #000; paint-order: stroke fill; text-shadow: 0.04em 0.05em 0 #000, 0 0 0.3em #0008; transform: scale(1.6); opacity: 0; animation: bustedIn 0.9s cubic-bezier(.2,1.4,.4,1) 0.4s forwards; }
+#busted .sub { margin-top: 1vh; font: 700 2.4vh system-ui; color: #fff; text-shadow: 0 2px 6px #000; opacity: 0; animation: bustedSub 0.6s ease-out 1.6s forwards; }
+@keyframes bustedIn { to { transform: scale(1); opacity: 1; } }
+@keyframes bustedSub { to { opacity: 1; } }
+body.busted #gl { filter: grayscale(0.85) contrast(1.15) brightness(0.75); transition: filter 1.2s ease; }

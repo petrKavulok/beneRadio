@@ -57,7 +57,7 @@ async function exportImg(base, bb, W, extra, file) {
   const [x0, z0] = toLocal(ex.ymax, ex.xmin), [x1, z1] = toLocal(ex.ymin, ex.xmax);
   return { x0, z0, x1, z1, w: j.width, h: j.height };
 }
-const demW = Math.min(4000, Math.round(box.size / 5 / 0.6436)); // ~5 m in y
+const demW = Math.min(4000, Math.round(box.size / (box.demRes ?? 5) / Math.cos(box.arp[0] * Math.PI / 180))); // ~5 m (or demRes) in y
 const dem = await exportImg(DEM, b, demW, 'format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation', `${raw}/dem.tif`);
 console.log(`${id} dem ${dem.w}x${dem.h}`);
 

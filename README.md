@@ -1,4 +1,4 @@
-# beneRadio – Tecnam flight sim: LKBE Benešov, LKPM Příbram, LKPR Praha, LKVL Vlašim
+# beneRadio – Tecnam flight sim: LKBE Benešov, LKPM Příbram, LKPR Praha, LKVL Vlašim, LKKV Karlovy Vary
 
 A browser flight sim for a flight school at **LKBE Benešov**. You start on the apron, taxi to the real
 holding points, fly a circuit over the real terrain and villages, land, and taxi back.
@@ -27,7 +27,8 @@ Press **H** in the sim for the key list. The basics:
 ## World: detail islands + streaming
 
 - **Detail islands** are pre-baked high-resolution areas around the airports: 5 m ČÚZK DMR 5G terrain, 1 m orthophoto, OSM buildings and forests,
-  and a painted aerodrome surface. They are LKBE (22 × 22 km, `public/data/`), LKPM (8 × 8 km), LKPR (10 × 10 km) and LKVL Vlašim (6 × 6 km), the last three under `public/data/<ICAO>/`.
+  and a painted aerodrome surface. They are LKBE (22 × 22 km, `public/data/`), LKPM (8 × 8 km), LKPR (10 × 10 km) LKVL Vlašim (6 × 6 km) and LKKV Karlovy Vary (14 × 14 km, which includes the whole city and the Ohře valley), all of these under `public/data/<ICAO>/`.
+  LKKV is controlled (Vary TOWER). Its stands are generated from OSM's numbered stand lead-in lines.
   LKVL's taxiway A, holding point and stands are hand-placed in `registry.ts`, because OSM only maps its runway.
 - **Everywhere else in Czechia streams in** (`src/world/stream.ts`, `src/world/stream-buildings.ts`) as a quadtree of tiles around the camera:
   - ČÚZK `ORTOFOTO_WM` photo

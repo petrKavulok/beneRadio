@@ -6,6 +6,8 @@ export const ISLANDS = {
   LKPM: { name: 'Příbram', arp: [49.72, 14.10028], tiles: 4, fixLevels: false },
   LKPR: { name: 'Praha Ruzyně', arp: [50.10167, 14.26333], tiles: 5, fixLevels: false },
   LKVL: { name: 'Vlašim', arp: [49.72889, 14.87889], tiles: 3, fixLevels: false },
+  // big island: airport + the whole city of Karlovy Vary and the Ohře valley; 7 m DEM keeps the file small
+  LKKV: { name: 'Karlovy Vary', arp: [50.20306, 12.915], tiles: 7, fixLevels: false, demRes: 7 },
 };
 
 /** Island geometry in local metres: square of `tiles` × 2 km centred on the ARP. */

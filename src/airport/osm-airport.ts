@@ -26,6 +26,8 @@ export interface AirportMeta {
   /** hand-drawn additions where OSM has nothing (small grass fields) */
   extraTaxiways?: Taxiway[];
   extraAprons?: { pts: P2[]; paved: boolean }[];
+  /** apron (index into the OSM aprons) to put generated stands on when OSM has none */
+  standApron?: number;
 }
 
 const dist = (a: P2, b: P2) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -106,10 +108,8 @@ export function airportFromOsm(j: OsmAirportJson, m: AirportMeta): Airport {
   }
   // ---- stands
   let stands: Stand[] = m.stands ? m.stands(j.stands) : j.stands.slice(0, 5).map((s, i) => ({ id: s.ref || `S${i + 1}`, pos: s.pos, hdg: 0 }));
-  if (!stands.length && j.aprons.length) {
-    const a = j.aprons[0].pts, c: P2 = [a.reduce((s, p) => s + p[0], 0) / a.length, a.reduce((s, p) => s + p[1], 0) / a.length];
-    stands = [{ id: 'S1', pos: c, hdg: 0 }];
-  }
+  if (!stands.length) stands = standsFromLeadIns(j.taxiways);
+  if (!stands.length && j.aprons.length) stands = standsOnApron(m.standApron !== undefined ? j.aprons[m.standApron].pts : j.aprons[0].pts, runways[0]);
   // ---- parking area polygon: aprons union (largest apron near the stands)
   const parking = stands.length > 1 && !j.aprons.length ? hull(stands.map((s) => s.pos), 25)
     : j.aprons.length ? (j.aprons.find((a) => stands.some((s) => inPolyLocal(s.pos, a.pts)))?.pts ?? j.aprons.reduce((a, b) => (b.pts.length > a.pts.length ? b : a)).pts)
@@ -136,4 +136,38 @@ function hull(pts: P2[], pad: number): P2[] {
   const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
   const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, z0 = Math.min(...zs) - pad, z1 = Math.max(...zs) + pad;
   return [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
+}
+
+/** Up to 5 stands (20 m apart) inside an apron, keeping clear of its edges, facing the runway. */
+function standsOnApron(poly: P2[], rwy: Runway | undefined): Stand[] {
+  const xs = poly.map((p) => p[0]), zs = poly.map((p) => p[1]);
+  const edgeDist = (p: P2) => { let d = Infinity; for (let i = 0; i < poly.length; i++) d = Math.min(d, segDist(p, poly[i], poly[(i + 1) % poly.length])); return d; };
+  const cand: { p: P2; d: number }[] = [];
+  for (let x = Math.min(...xs); x < Math.max(...xs); x += 8) for (let z = Math.min(...zs); z < Math.max(...zs); z += 8) {
+    const p: P2 = [x, z];
+    if (!inPolyLocal(p, poly)) continue;
+    const d = edgeDist(p);
+    if (d > 9) cand.push({ p, d });
+  }
+  cand.sort((a, b) => b.d - a.d);
+  const out: P2[] = [];
+  for (const c of cand) if (out.length < 5 && out.every((q) => Math.hypot(q[0] - c.p[0], q[1] - c.p[1]) > 20)) out.push(c.p);
+  if (!out.length) out.push([xs.reduce((a, b) => a + b, 0) / xs.length, zs.reduce((a, b) => a + b, 0) / zs.length]);
+  const mid: P2 | null = rwy ? [(rwy.thr[0] + rwy.end[0]) / 2, (rwy.thr[1] + rwy.end[1]) / 2] : null;
+  return out.map((p, i) => ({ id: `S${i + 1}`, pos: p, hdg: mid ? (Math.atan2(mid[0] - p[0], -(mid[1] - p[1])) * 180 / Math.PI + 360) % 360 : 0 }));
+}
+
+/** Stands at the free end of numbered stand lead-in lines (OSM taxiways ref "1", "2", …), facing out. */
+function standsFromLeadIns(twys: OsmAirportJson['taxiways']): Stand[] {
+  const key = (p: P2) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+  const count = new Map<string, number>();
+  for (const t of twys) for (const p of t.pts) count.set(key(p), (count.get(key(p)) ?? 0) + 1);
+  const out: Stand[] = [];
+  for (const t of twys.filter((x) => /^\d+[A-Z]?$/.test(x.ref)).sort((a, b) => parseInt(a.ref) - parseInt(b.ref))) {
+    const a = t.pts[0], b = t.pts[t.pts.length - 1];
+    const [free, inner] = (count.get(key(a)) ?? 0) <= 1 ? [a, t.pts[1]] : (count.get(key(b)) ?? 0) <= 1 ? [b, t.pts[t.pts.length - 2]] : [null, null];
+    if (!free || !inner) continue;
+    out.push({ id: t.ref, pos: free, hdg: (Math.atan2(inner[0] - free[0], -(inner[1] - free[1])) * 180 / Math.PI + 360) % 360 });
+  }
+  return out.slice(0, 6);
 }

@@ -1,6 +1,6 @@
 export const HELP_HTML = `
-<h2>Tecnam P2002 / P2006T trainer – LKBE · LKPM · LKVL · LKPR</h2>
-<p>Pick your <b>Start</b> airport at the bottom: LKBE Benešov, LKPM Příbram, LKVL Vlašim or LKPR Praha (controlled – TOWER clearances). You can fly anywhere in Czechia: the airports are detailed islands (5 m terrain, 1 m photo), everything else streams in as you fly. To land at another airport, just line up on its final.<br>Real terrain (ČÚZK DMR 5G + Terrarium elevation), real orthophoto (ČÚZK), villages from OpenStreetMap / OpenFreeMap.
+<h2>Tecnam P2002 / P2006T trainer – LKBE · LKPM · LKVL · LKPR · LKKV</h2>
+<p>Pick your <b>Start</b> airport at the bottom: LKBE Benešov, LKPM Příbram, LKVL Vlašim, LKPR Praha or LKKV Karlovy Vary (the last two controlled – TOWER clearances). You can fly anywhere in Czechia: the airports are detailed islands (5 m terrain, 1 m photo), everything else streams in as you fly. To land at another airport, just line up on its final.<br>Real terrain (ČÚZK DMR 5G + Terrarium elevation), real orthophoto (ČÚZK), villages from OpenStreetMap / OpenFreeMap.
 Fun physics – roughly P2002-like, not a certified simulator.</p>
 <table>
 <tr><td>E</td><td>Start / stop engine</td></tr>

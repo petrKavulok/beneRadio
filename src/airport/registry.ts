@@ -6,7 +6,7 @@ import { airportFromOsm, AirportMeta, OsmAirportJson } from './osm-airport';
 import { toLocal } from '../world/geo';
 
 const BASE = import.meta.env.BASE_URL + 'data/';
-export const ISLAND_IDS = ['LKPM', 'LKPR', 'LKVL'];
+export const ISLAND_IDS = ['LKPM', 'LKPR', 'LKVL', 'LKKV'];
 
 const pickStands = (filter: (ref: string) => boolean, hdg: number, max = 5) => (all: { ref: string; pos: P2 }[]): Stand[] =>
   all.filter((s) => filter(s.ref)).sort((a, b) => a.ref.localeCompare(b.ref, 'en', { numeric: true })).slice(0, max).map((s) => ({ id: s.ref, pos: s.pos, hdg }));
@@ -43,6 +43,17 @@ const META: Record<string, () => AirportMeta> = {
       holds: [{ id: 'A', label: 'A – RWY 13/31', pos: at(59, 87), on: 'A', runways: ['13', '31'], facing: at(31.6, 122.3) }],
       hpFor: { '13': 'A', '31': 'A' },
       stands: () => [[96, -14], [82, 4], [68, 22]].map(([x, z], i) => ({ id: `P${i + 1}`, pos: at(x, z), hdg: 217 })),
+    };
+  },
+  LKKV: () => {
+    const c = toLocal(50.20306, 12.915);
+    return {
+      icao: 'LKKV', name: 'Karlovy Vary', radio: 'Vary TOWER 121.230 · ATIS 127.640', callName: 'Vary TOWER', towered: true,
+      elevFt: 1989, circuitFt: 3000, magVar: 5,
+      // circuits south of the runway, away from the city (VFR chart AD 2-LKKV-VFRC)
+      circuit: { '11': 'R', '29': 'L', '12': 'R', '30': 'L' },
+      centre: c, tower: { pos: [c[0] - 330, c[1] + 140], height: 22 },
+      standApron: 1, // the larger apron west of the terminal
     };
   },
   LKPR: () => {

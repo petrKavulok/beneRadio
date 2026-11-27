@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 import { GeoData } from './world/data';
 import { buildTerrain, groundOverlay } from './world/terrain';
 import { paintAirportGround } from './world/airfield-ground';
@@ -30,6 +31,9 @@ import { HELP_HTML, TOUCH_HELP_HTML } from './ui/help';
 import { TouchControls, wantsTouch, touchify } from './ui/touch';
 import { navTo, fmtBrg } from './nav';
 import { Splash } from './ui/splash';
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
 
 const $ = (id: string) => document.getElementById(id)!;
 const splash = new Splash();

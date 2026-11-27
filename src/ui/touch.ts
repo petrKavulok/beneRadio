@@ -2,7 +2,7 @@
 // a menu for everything else, optional tilt steering, and drag / pinch to look around.
 import type { Input, Action } from '../sim/input';
 
-export interface TouchState { parking: boolean; flaps: number; gear: number | null; running: boolean; throttle: number; trim: number; view: string; paused: boolean; twin: boolean; sound: boolean; voice: boolean }
+export interface TouchState { parking: boolean; flaps: number; gear: number | null; running: boolean; throttle: number; trim: number; view: string; paused: boolean; time: string; twin: boolean; sound: boolean; voice: boolean }
 
 /** Should the touch layout be on? (?touch=1 / ?touch=0 override the detection) */
 export function wantsTouch() {
@@ -45,6 +45,8 @@ export class TouchControls {
   private thrDrag: { y: number; v: number } | null = null;
   onPicker: (show: boolean) => void = () => {};
   onPause: () => void = () => {};
+  /** cycle the time of day */
+  onTime: () => void = () => {};
   /** the picker was closed from outside (its Done button) */
   closePicker = () => {};
 
@@ -73,6 +75,7 @@ export class TouchControls {
           <button data-m="lesson">✦ New lesson (new wind)</button>
           <button data-m="nextStand">⇄ Next parking stand</button>
           <button data-m="picker">✈︎ Aircraft &amp; airport…</button>
+          <button data-m="time">☀️ Time: Midday</button>
           <button data-m="help">? Help</button>
           <button data-m="labels">🏷 Village labels</button>
           <button data-m="sound">🔊 Engine sound</button>
@@ -190,6 +193,7 @@ export class TouchControls {
         case 'reset': case 'lesson': case 'nextStand': this.input.fire(m as Action); this.menu(false); break;
         case 'help': this.menu(false); this.input.fire('help'); break;
         case 'labels': this.input.fire('labels'); break;
+        case 'time': this.onTime(); break;
         case 'sound': this.input.fire('sound'); break;
         case 'voice': this.input.fire('voice'); break;
         case 'failL': case 'failR': this.input.fire(m as Action); this.menu(false); break;
@@ -284,6 +288,7 @@ export class TouchControls {
     E.m_tilt.textContent = `📱 Tilt steering: ${this.tiltOn ? 'ON' : 'OFF'}`;
     E.m_tiltInv.textContent = `⇅ Tilt pitch: ${this.tiltInvert ? 'inverted' : 'normal'}`;
     E.m_tiltCal.classList.toggle('hidden', !this.tiltOn); E.m_tiltInv.classList.toggle('hidden', !this.tiltOn);
+    E.m_time.textContent = `Time: ${s.time}`;
     E.m_sound.textContent = `${s.sound ? '🔊' : '🔇'} Engine sound: ${s.sound ? 'on' : 'off'}`;
     E.m_voice.textContent = `${s.voice ? '🗣' : '🔇'} Controller voice: ${s.voice ? 'on' : 'off'}`;
     this.root.querySelectorAll<HTMLElement>('.twin').forEach((b) => b.classList.toggle('hidden', !s.twin));

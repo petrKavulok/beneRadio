@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16305e" /><stop offset="0.4" stop-color="#6e4f7e" /><stop offset="0.62" stop-color="#e2825a" /><stop offset="0.72" stop-color="#f8c97f" />
+    </linearGradient>
+    <clipPath id="c"><rect width="64" height="64" rx="14" /></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="64" height="64" fill="url(#s)" />
+    <circle cx="46" cy="46" r="8" fill="#fff1c4" />
+    <path d="M0 46 H64 V64 H0 Z" fill="#161a2b" />
+    <path d="M29 46 H35 L44 64 H20 Z" fill="#3a3348" />
+    <g fill="#0d1322">
+      <path d="M4 29.5 L32 32.5 L60 29.5 L60 34 L32 38.5 L4 34 Z" />
+      <rect x="26.5" y="24" width="11" height="16" rx="5.5" />
+      <path d="M30.6 33 L31 11 Q32 9.5 33 11 L33.4 33 Z" />
+      <rect x="21" y="28" width="22" height="3" rx="1" />
+      <path d="M21.5 38.5 L19.5 43 M42.5 38.5 L44.5 43" stroke="#0d1322" stroke-width="2.4" stroke-linecap="round" />
+      <ellipse cx="19" cy="44.5" rx="2.6" ry="3.2" /><ellipse cx="45" cy="44.5" rx="2.6" ry="3.2" />
+    </g>
+    <circle cx="4.5" cy="31.5" r="1.8" fill="#ff4a4a" /><circle cx="59.5" cy="31.5" r="1.8" fill="#3dff7a" />
+  </g>
+</svg>

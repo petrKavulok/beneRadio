@@ -7,7 +7,7 @@ import { StreamedVillages } from './world/stream-buildings';
 import { loadAirports, ISLAND_IDS } from './airport/registry';
 import type { Airport } from './airport/types';
 import { buildBuildings, obstacleIndex, Bld } from './world/buildings';
-import { buildEnvironment } from './world/env';
+import { buildEnvironment, TIME_OPTIONS, TimeOfDay } from './world/env';
 import { buildAirfield } from './airport/objects';
 import { Aircraft, Env } from './sim/fdm';
 import { P2002 } from './sim/p2002';
@@ -30,6 +30,7 @@ import { HELP_HTML, TOUCH_HELP_HTML } from './ui/help';
 import { TouchControls, wantsTouch, touchify } from './ui/touch';
 import { navTo, fmtBrg } from './nav';
 import { Splash } from './ui/splash';
+import { addAircraftLights, AircraftLights } from './models/lights';
 
 const $ = (id: string) => document.getElementById(id)!;
 const splash = new Splash();
@@ -54,7 +55,7 @@ async function main() {
 
   progress('Warming up the engine…', 0.02);
   const geo = await GeoData.load(progress, ISLAND_IDS);
-  const env = buildEnvironment(scene);
+  const env = buildEnvironment(scene, renderer);
   progress('Loading orthophoto tiles (ČÚZK)…', 0.12);
   const terrain = await buildTerrain(geo, renderer, progress);
   scene.add(terrain.group);
@@ -109,10 +110,12 @@ async function main() {
   livreg.military = localStorage.getItem('lkbe.serial') || '0731';
   let visual: AircraftVisual;
   let parked: AircraftVisual[] = [];
+  let acLights: AircraftLights;
   async function loadVisuals() {
     if (visual) scene.remove(visual.root);
     parked.forEach((p) => scene.remove(p.root));
     visual = await makeVisual(visualId, livery);
+    acLights = addAircraftLights(visual.root);
     scene.add(visual.root);
     parked = await Promise.all(PARKED.map(([, , , l]) => makeVisual(isTwin() ? 'detailed' : visualId, l)));
     parked.forEach((p, i) => {
@@ -170,8 +173,15 @@ async function main() {
     granny.reset(); police.car.visible = false; atc.reset(); chase.park(...POLICE_HOME);
     busted = false; document.body.classList.remove('busted'); $('busted').classList.add('hidden'); sound.sirenLevel(0, 0);
   };
-  lesson.onRadio = (lines) => {
+  // touch: tap the radio strip to clear the messages currently shown
+  const radioGone = new Set<string>();
+  let radioNow: string[] = [];
+  $('radio').addEventListener('pointerdown', () => { radioNow.forEach((t) => radioGone.add(t)); $('radio').style.display = 'none'; });
+  lesson.onRadio = (all) => {
     const el = $('radio');
+    const lines = document.body.classList.contains('touch') ? all.filter((l) => !radioGone.has(l.text)) : all;
+    radioNow = lines.map((l) => l.text);
+    if (radioGone.size > 50) radioGone.clear();
     el.style.display = lines.length ? 'block' : 'none';
     el.innerHTML = lines.map((l) => `<div style="opacity:${l.alpha.toFixed(2)}"${l.tag ? ' class="warn"' : ''}>${l.text.replace(/^(\S+:)/, '<b>$1</b>')}</div>`).join('');
   };
@@ -189,6 +199,10 @@ async function main() {
   let touch: TouchControls | null = null;
   const enableTouch = () => {
     if (touch) return;
+    // lesson box: tap to fold it into a small pill (remembered)
+    const msg = $('msg');
+    msg.classList.toggle('folded', localStorage.getItem('lkbe.msgFolded') === '1');
+    msg.addEventListener('pointerdown', () => { msg.classList.toggle('folded'); localStorage.setItem('lkbe.msgFolded', msg.classList.contains('folded') ? '1' : '0'); });
     touch = new TouchControls(input, canvas, () => ({
       parking: input.c.parking, flaps: input.c.flaps, gear: ac.A.retractable ? ac.gearPos : null, running: ac.running || ac.starting > 0,
       throttle: input.c.throttle, trim: input.c.trim, view: rig.view, paused, twin: ac.eng.length > 1, sound: !sound.muted, voice: voice.enabled,
@@ -239,9 +253,13 @@ async function main() {
       <label>Livery <select id="selLivery">${LIVERIES.map((l) => `<option value="${l}">${l === SCHOOL ? 'LKBE Benešov school' : l === 'Hot-Rod-Flames' ? '🔥 Hot Rod Flames' : l}</option>`).join('')}</select></label>
       <label>Reg <input id="inReg" maxlength="8" size="7" spellcheck="false"></label>
       <label>Start <select id="selStart">${airports.map((a) => `<option value="${a.icao}">${a.icao} ${a.name}</option>`).join('')}</select></label>
+      <label>Time <select id="selTime">${TIME_OPTIONS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('')}</select></label>
       <label>Direct to <select id="selNav"><option value="">—</option>${airports.map((a) => `<option value="${a.icao}">${a.icao}</option>`).join('')}</select></label>
       <button id="btnSound" class="tgl" title="Engine sound on/off (O)"></button>
       <button id="btnVoice" class="tgl" title="Controller voice on/off (V)"></button>`;
+    const st = $('selTime') as HTMLSelectElement;
+    st.value = env.time;
+    st.onchange = () => { env.setTime(st.value as TimeOfDay); localStorage.setItem('lkbe.time', env.time); st.blur(); };
     const sn = $('selNav') as HTMLSelectElement;
     sn.onchange = () => {
       navAp = airports.find((a) => a.icao === sn.value) ?? null; sn.blur();
@@ -299,7 +317,7 @@ async function main() {
     };
   }
 
-  (window as unknown as { sim: unknown }).sim = { ac, input, lesson, atc, chase, get busted() { return busted; }, voice, geo, rig, scene, granny, police, stream, villages, airports, renderer, camera, get visual() { return visual; } };
+  (window as unknown as { sim: unknown }).sim = { env, ac, input, lesson, atc, chase, get busted() { return busted; }, voice, geo, rig, scene, granny, police, stream, villages, airports, renderer, camera, get visual() { return visual; } };
   let started = false;
   splash.ready(() => { started = true; sound.start(); });
   const clock = new THREE.Timer();
@@ -346,6 +364,10 @@ async function main() {
 
     visual.root.position.copy(ac.pos); visual.root.quaternion.copy(ac.quat);
     visual.animate(input.c, ac.rpm, dt, Math.hypot(ac.vel.x, ac.vel.z), rig.view === 'cockpit', { gearPos: ac.gearPos, rpms: ac.eng.map((e) => e.rpm) });
+    {
+      const gnd = geo.heightAt(ac.pos.x, ac.pos.z);
+      acLights.update(dt, { running: ac.running || ac.starting > 0, onGround: ac.onGround, gsKt: Math.hypot(ac.vel.x, ac.vel.z) * 1.944, aglFt: (ac.pos.y - gnd - ac.A.restHeight) * 3.281 });
+    }
     rig.eye.copy(visual.eye);
     rig.update(dt, ac.pos, ac.quat, ac.heading());
     env.follow(ac.pos);
@@ -380,8 +402,9 @@ async function main() {
       if (frac !== panelFrac) { panelFrac = frac; document.documentElement.style.setProperty('--ph', `${frac * 100}vh`); }
       touch?.sync();
       map.draw({ x: ac.pos.x, z: ac.pos.z, hdg: st.hdg }, st.aglFt < 150, lesson.route, lesson.target, nav);
-      const lessonHtml = touch ? touchify(lesson.text(st)) : lesson.text(st);
-      $('msg').innerHTML = lessonHtml + (nav ? `\n\n<b style="color:#ff7df5">→ ${nav.icao} ${nav.name}</b>: ${nav.distNm.toFixed(1)} NM, course <b>${fmtBrg(nav.brgMag)}°</b>${nav.eteMin !== null ? `, ETE ${Math.round(nav.eteMin)} min` : ''}${nav.distNm < 4 && !st.onGround ? ` – join the ${nav.icao} circuit at ${airports.find((a) => a.icao === nav.icao)!.circuitFt} ft and call ${airports.find((a) => a.icao === nav.icao)!.callName}` : ''}` : '') + (paused ? (touch ? '\n\n<b>PAUSED</b>' : '\n\n<b>PAUSED</b> – Esc to resume') : '') + (touch ? '' : `\n\n<span style="opacity:.6">H = help · C = view (${rig.view}) · M = map${input.mouseYoke ? ' · mouse yoke ON' : ''}</span>`);
+      let lessonHtml = touch ? touchify(lesson.text(st)) : lesson.text(st);
+      if (touch) { const i = lessonHtml.indexOf('\n\n'); if (i > 0) lessonHtml = `<div class="hdr">${lessonHtml.slice(0, i)}</div>${lessonHtml.slice(i + 2)}`; }
+      $('msg').innerHTML = (touch ? '<span class="pill">📋 Lesson</span>' : '') + lessonHtml + (nav ? `\n\n<b style="color:#ff7df5">→ ${nav.icao} ${nav.name}</b>: ${nav.distNm.toFixed(1)} NM, course <b>${fmtBrg(nav.brgMag)}°</b>${nav.eteMin !== null ? `, ETE ${Math.round(nav.eteMin)} min` : ''}${nav.distNm < 4 && !st.onGround ? ` – join the ${nav.icao} circuit at ${airports.find((a) => a.icao === nav.icao)!.circuitFt} ft and call ${airports.find((a) => a.icao === nav.icao)!.callName}` : ''}` : '') + (paused ? (touch ? '\n\n<b>PAUSED</b>' : '\n\n<b>PAUSED</b> – Esc to resume') : '') + (touch ? '' : `\n\n<span style="opacity:.6">H = help · C = view (${rig.view}) · M = map${input.mouseYoke ? ' · mouse yoke ON' : ''}</span>`);
     }
     hud.draw(camera, showLabels, lesson.target, st, nav && nav.distNm > 0.6 ? nav : null);
   });

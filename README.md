@@ -24,6 +24,13 @@ Press **H** in the sim for the key list. The basics:
 - **C**: camera view
 - **M**: map
 
+### Time of day & lights
+
+The **Time** selector in the bottom bar switches between ☀️ Midday and 🌇 Summer evening (low sun in the WNW,
+golden light, long shadows). The aircraft has working exterior lights: red/green nav lights and the white tail
+light, a red beacon while the engine runs, wingtip strobes on the runway and in the air, and a landing light for
+take-off, approach and landing.
+
 ### iPad / touch
 
 On a touch screen the sim switches to touch controls by itself (force it with `?touch=1`, turn it off with `?touch=0`):

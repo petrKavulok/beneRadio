@@ -119,7 +119,22 @@ html, body { touch-action: none; -webkit-user-select: none; user-select: none; -
 body.touch #picker { display: none; flex-wrap: wrap; left: 50%; transform: translateX(-50%); bottom: calc(var(--ph) + 76px); max-width: 92vw; font-size: 14px; z-index: 9; }
 body.touch.picker #picker { display: flex; }
 body.touch #picker select, body.touch #picker input, body.touch #picker .tgl { font-size: 16px; min-height: 36px; }
-body.touch #msg { max-width: 380px; font-size: 13px; }
+/* touch: compact lesson box (tap = fold to a pill) and a short radio strip (tap = clear) */
+body.touch #msg { pointer-events: auto; max-width: min(330px, 34vw); font-size: 12.5px; line-height: 1.38; padding: 7px 11px; background: #000a; border-radius: 9px;
+  top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); max-height: 30vh; overflow: hidden; }
+body.touch #msg .hdr { font-size: 11px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+body.touch #msg .hdr b { color: #fff; }
+body.touch #msg .pill { display: none; }
+body.touch #msg.folded { max-width: none; padding: 5px 10px; background: #0008; }
+body.touch #msg.folded > :not(.pill) { display: none; }
+body.touch #msg.folded { font-size: 0; } body.touch #msg.folded .pill { display: inline; font-size: 12px; font-weight: 600; }
+body.touch #radio { pointer-events: auto; top: max(8px, env(safe-area-inset-top)); max-width: min(40vw, 460px); padding: 4px 9px; font-size: 11px; line-height: 1.35; background: #000a; }
+body.touch #radio div:nth-last-child(n+3) { display: none; }
+@media (max-height: 500px) {
+  body.touch #msg { max-width: min(260px, 32vw); font-size: 11px; max-height: 34vh; }
+  body.touch #radio { max-width: 36vw; font-size: 10px; }
+  body.touch #map:not(.big) { width: 150px; height: 150px; }
+}
 body.touch #map { width: 240px; height: 240px; }
 body.touch #map.big { width: min(80vh, 80vw); height: min(80vh, 80vw); }
 @media (max-width: 1000px) {
@@ -131,3 +146,33 @@ body.touch #map.big { width: min(80vh, 80vw); height: min(80vh, 80vw); }
   #touch .stick { width: 150px; height: 150px; }
   #touch .rudder { width: 150px; }
 }
+/* phones held sideways (≤ 500 px tall): everything smaller so the scenery stays visible */
+@media (max-height: 500px) {
+  body.touch #map:not(.big) { width: 120px; height: 120px; top: 8px; right: max(8px, env(safe-area-inset-right)); }
+  #touch .lbl { font-size: 9px; }
+  #touch .stick { width: 112px; height: 112px; bottom: calc(var(--ph) + 52px); left: max(10px, env(safe-area-inset-left)); }
+  #touch .stick .knob { left: calc(50% - 21px); top: calc(50% - 21px); width: 42px; height: 42px; }
+  #touch .stick .lbl, #touch .rudder .lbl.top { top: -14px; }
+  #touch .rudder { width: 112px; height: 34px; border-radius: 17px; bottom: calc(var(--ph) + 8px); left: max(10px, env(safe-area-inset-left)); }
+  #touch .rudder .knob { top: 3px; width: 26px; height: 26px; left: calc(50% - 13px); }
+  #touch .rudder .lbl { top: 10px; }
+  #touch .rudder .lbl.l, #touch .rudder .lbl.r { display: none; }
+  #touch .thr { width: 50px; height: 150px; bottom: calc(var(--ph) + 8px); right: max(10px, env(safe-area-inset-right)); }
+  #touch .thr .knob { height: 30px; }
+  #touch .thr .lbl { font-size: 10px; top: 5px; }
+  #touch button { font-size: 11px; min-height: 34px; border-radius: 9px; padding: 2px 6px; border-width: 1.5px; }
+  #touch .cluster { right: calc(max(10px, env(safe-area-inset-right)) + 58px); bottom: calc(var(--ph) + 8px); grid-template-columns: 66px 66px; gap: 5px; }
+  #touch .cluster .big { min-height: 40px; font-size: 13px; }
+  #touch .row { bottom: calc(var(--ph) + 8px); gap: 5px; }
+  #touch .row button { min-width: 50px; font-size: 11px; }
+  #touch .menu .grid { grid-template-columns: repeat(3, minmax(130px, 200px)); gap: 6px; }
+  #touch .menu button { min-height: 40px; font-size: 13px; }
+}
+/* cluster order: BRAKE on top, then flaps ▲ | trim up, flaps ▼ | trim dn, park | gear */
+#touch .cluster [data-k="brake"] { grid-row: 1; grid-column: 1 / span 2; }
+#touch .cluster [data-k="flapUp"] { grid-row: 2; grid-column: 1; }
+#touch .cluster [data-k="trimUp"] { grid-row: 2; grid-column: 2; }
+#touch .cluster [data-k="flapDn"] { grid-row: 3; grid-column: 1; }
+#touch .cluster [data-k="trimDn"] { grid-row: 3; grid-column: 2; }
+#touch .cluster [data-k="park"] { grid-row: 4; grid-column: 1; }
+#touch .cluster [data-k="gear"] { grid-row: 4; grid-column: 2; }

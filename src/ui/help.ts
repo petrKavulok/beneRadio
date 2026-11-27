@@ -20,6 +20,7 @@ Fun physics – roughly P2002-like, not a certified simulator.</p>
 <tr><td>O</td><td>Engine sound on / off (stall &amp; gear warning horns stay on) – also the 🔊 / 🗣 buttons at the bottom</td></tr>
 <tr><td>C</td><td>Camera: cockpit → chase → tower · drag mouse to look · wheel = zoom</td></tr>
 <tr><td>M</td><td>Map: small → big → wide (60 km) → small</td></tr>
+<tr><td>Time</td><td>(bottom bar) ☀️ Midday or 🌇 Summer evening light</td></tr>
 <tr><td>Direct to</td><td>(bottom bar) pick an airport: magenta course line on the map, bearing pointer on the heading indicator, marker in the 3D view, distance / course / ETE</td></tr>
 <tr><td>L</td><td>Village name labels</td></tr>
 <tr><td>N</td><td>Next parking stand</td></tr>
@@ -49,6 +50,7 @@ export const TOUCH_HELP_HTML = `
 <tr><td>ENGINE · 📻 CALL</td><td>Start/stop engine · radio call (taxi request, ready for departure, vacated)</td></tr>
 <tr><td>VIEW · MAP</td><td>Change camera · map size</td></tr>
 <tr><td>Scenery</td><td>Drag with one finger to look around, pinch to zoom</td></tr>
+<tr><td>Lesson box · radio</td><td>Tap the lesson box (top left) to fold it into a small pill and back · tap the controller messages to clear them</td></tr>
 <tr><td>☰</td><td>Pause menu: restart, new lesson, aircraft &amp; airport, sound/voice, <b>tilt steering</b> (fly by tilting the iPad), full screen</td></tr>
 </table>
 <p>Tip: in Safari use <b>Share → Add to Home Screen</b> for a full-screen app. Tap anywhere to close this help.</p>

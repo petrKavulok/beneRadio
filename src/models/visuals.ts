@@ -15,7 +15,7 @@ export interface AircraftVisual {
 }
 
 export const VISUAL_OPTIONS = [
-  { id: 'detailed', label: 'Tecnam P2002 Sierra (detailed)' },
+  { id: 'detailed', label: 'Tecnam P2002 Sierra' },
   { id: 'simple', label: 'Tecnam P2002 (simple model)' },
   { id: 'p2006t', label: 'Tecnam P2006T twin' },
 ] as const;

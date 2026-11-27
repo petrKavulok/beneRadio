@@ -1,3 +1,4 @@
+import { later } from './budget';
 // Streamed Czech-wide terrain: quadtree of Web-Mercator tiles around the camera.
 // Height: Terrarium elevation tiles (AWS open data). Texture: ČÚZK orthophoto (ORTOFOTO_WM).
 // Tiles are not drawn inside the baked detail islands (shader discard), which keep their own data.
@@ -31,7 +32,16 @@ export class StreamedTerrain {
   private elevCache = new Map<string, Promise<Elev | null>>();
   private shown = new Set<Node>();
   private uniforms: { rects: { value: THREE.Vector4[] }; detail: { value: THREE.Texture | null } };
-  private tl = new THREE.TextureLoader();
+  // photos are decoded off the main thread (createImageBitmap); Safari would otherwise decode at upload time
+  // (kept upright for the moving map; the texture flips it via its UV transform instead of flipY)
+  private tl = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'none' });
+  private loadTex(url: string): Promise<THREE.Texture | null> {
+    return this.tl.loadAsync(url).then((bmp) => {
+      const t = new THREE.Texture(bmp as ImageBitmap);
+      t.flipY = false; t.repeat.set(1, -1); t.offset.set(0, 1); t.needsUpdate = true;
+      return t;
+    }).catch(() => null);
+  }
   private fallbackTex: THREE.Texture;
   enabled = true;
   stats = { shown: 0, loading: 0, nodes: 0 };
@@ -143,13 +153,25 @@ export class StreamedTerrain {
 
   private async load(n: Node, _cam: THREE.Vector3) {
     n.state = 'loading'; this.loading++;
+    let elev: Elev | null = null, tex: THREE.Texture | null = null, ex = 0, ey = 0, f = 1;
     try {
-      const ez = Math.min(n.z, ELEV_MAX_Z), f = 2 ** (n.z - ez);
-      const ex = Math.floor(n.x / f), ey = Math.floor(n.y / f);
-      const [elev, tex] = await Promise.all([
+      const ez = Math.min(n.z, ELEV_MAX_Z); f = 2 ** (n.z - ez);
+      ex = Math.floor(n.x / f); ey = Math.floor(n.y / f);
+      [elev, tex] = await Promise.all([
         this.elevation(ez, ex, ey),
-        this.tl.loadAsync(ORTHO_URL(n.z, n.x, n.y)).catch(() => null),
+        this.loadTex(ORTHO_URL(n.z, n.x, n.y)),
       ]);
+    } catch (e) {
+      console.warn('tile failed', n.key, e);
+      n.state = 'failed'; this.loading--;
+      return;
+    }
+    // the CPU-heavy part runs in the per-frame work budget
+    later(() => this.finish(n, elev, tex, ex, ey, f));
+  }
+
+  private finish(n: Node, elev: Elev | null, tex: THREE.Texture | null, ex: number, ey: number, f: number) {
+    try {
       const heights = new Float32Array((SEG + 1) ** 2);
       for (let r = 0; r <= SEG; r++) for (let c = 0; c <= SEG; c++) {
         let h = 400;
@@ -160,7 +182,10 @@ export class StreamedTerrain {
         heights[r * (SEG + 1) + c] = this.blendEdge(n, c, r, h);
       }
       n.heights = heights;
-      if (tex) { tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); tex.generateMipmaps = true; }
+      if (tex) {
+        tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); tex.generateMipmaps = true;
+        this.renderer.initTexture(tex); // upload now, inside the budget, not in a random later frame
+      }
       n.mesh = this.buildMesh(n, heights, tex ?? this.fallbackTex);
       n.mesh.visible = false;
       this.group.add(n.mesh);
@@ -243,7 +268,7 @@ export class StreamedTerrain {
     this.stats.nodes = all.length;
     for (const n of all) {
       if (n.state === 'ready' && !this.shown.has(n) && n.used < this.frame - 600 && n.z > ROOT_Z) {
-        if (n.mesh) { this.group.remove(n.mesh); n.mesh.geometry.dispose(); const mat = n.mesh.material as THREE.MeshLambertMaterial; if (mat.map !== this.fallbackTex) mat.map?.dispose(); mat.dispose(); }
+        if (n.mesh) { this.group.remove(n.mesh); n.mesh.geometry.dispose(); const mat = n.mesh.material as THREE.MeshLambertMaterial; if (mat.map !== this.fallbackTex) { (mat.map?.image as ImageBitmap | undefined)?.close?.(); mat.map?.dispose(); } mat.dispose(); }
         n.mesh = undefined; n.heights = undefined; n.state = 'none';
       }
       if (n.kids && n.used < this.frame - 1200 && n.kids.every((k) => k.state !== 'ready' && k.state !== 'loading' && !k.kids)) n.kids = undefined;

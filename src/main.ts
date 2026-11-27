@@ -35,6 +35,7 @@ import { navTo, fmtBrg } from './nav';
 import { Splash } from './ui/splash';
 import { report } from './ui/report';
 import { LOW_MEM } from './quality';
+import { runJobs, pendingJobs, jobTimes } from './world/budget';
 import { addAircraftLights, AircraftLights } from './models/lights';
 
 inject();
@@ -110,7 +111,9 @@ async function main() {
   // Aircraft visuals (player + parked), switchable: detailed FlightGear P2002 or the original simple model.
   progress('Rolling the Tecnams out of the hangar…', 0.92);
   const PARKED: [number, number, number, string][] = [[-246, 342, 10, 'Classic-Blue'], [-110, 348, -5, 'orange'], [-70, 340, 175, 'Blue-Yellow']];
+  // the simple P2002 is hidden from the menu (it stays only as the fallback if the detailed model fails to load)
   let visualId = (localStorage.getItem('lkbe.visual') as VisualId) || 'detailed';
+  if (visualId === 'simple') visualId = 'detailed';
   const isTwin = () => visualId === 'p2006t';
   const paramsFor = (): AircraftParams => (isTwin() ? P2006T : P2002);
   const liveriesFor = () => (isTwin() ? P2006T_LIVERIES : LIVERIES);
@@ -267,8 +270,8 @@ async function main() {
 
   function setupPicker() {
     const pick = $('picker');
-    pick.innerHTML = `<label>Aircraft <select id="selVisual">${VISUAL_OPTIONS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('')}</select></label>
-      <label>Livery <select id="selLivery">${LIVERIES.map((l) => `<option value="${l}">${l === SCHOOL ? 'LKBE Benešov school' : l === 'Hot-Rod-Flames' ? '🔥 Hot Rod Flames' : l}</option>`).join('')}</select></label>
+    pick.innerHTML = `<label>Aircraft <select id="selVisual">${VISUAL_OPTIONS.filter((o) => o.id !== 'simple').map((o) => `<option value="${o.id}">${o.label}</option>`).join('')}</select></label>
+      <label>Livery <select id="selLivery">${LIVERIES.map((l) => `<option value="${l}">${l === SCHOOL ? 'Bene' : l === 'Hot-Rod-Flames' ? '🔥 Hot Rod Flames' : l}</option>`).join('')}</select></label>
       <label>Reg <input id="inReg" maxlength="8" size="7" spellcheck="false"></label>
       <label>Start <select id="selStart">${airports.map((a) => `<option value="${a.icao}">${a.icao} ${a.name}</option>`).join('')}</select></label>
       <label>Time <select id="selTime">${TIME_OPTIONS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('')}</select></label>
@@ -297,7 +300,7 @@ async function main() {
     };
     const sv = $('selVisual') as HTMLSelectElement, sl = $('selLivery') as HTMLSelectElement;
     const ir = $('inReg') as HTMLInputElement;
-    const label = (l: string) => (l === SCHOOL ? 'LKBE Benešov school' : l === 'Hot-Rod-Flames' ? '🔥 Hot Rod Flames' : l === 'CZ-Military' ? '🎖 Czech Air Force (grey)' : l.replace(/_/g, ' '));
+    const label = (l: string) => (l === SCHOOL ? 'Bene' : l === 'Hot-Rod-Flames' ? '🔥 Hot Rod Flames' : l === 'CZ-Military' ? '🎖 Czech Air Force (grey)' : l.replace(/_/g, ' '));
     const fillLiveries = () => { sl.innerHTML = liveriesFor().map((l) => `<option value="${l}">${label(l)}</option>`).join(''); sl.value = livery; };
     const fillReg = () => { ir.value = isTwin() ? livreg.military : livreg.reg; ir.maxLength = isTwin() ? 4 : 8; };
     fillLiveries(); fillReg();
@@ -337,7 +340,7 @@ async function main() {
     };
   }
 
-  (window as unknown as { sim: unknown }).sim = { env, ac, input, lesson, atc, chase, get busted() { return busted; }, voice, geo, rig, scene, granny, police, stream, villages, airports, renderer, camera, get visual() { return visual; } };
+  (window as unknown as { sim: unknown }).sim = { pendingJobs, jobTimes, env, ac, input, lesson, atc, chase, get busted() { return busted; }, voice, geo, rig, scene, granny, police, stream, villages, airports, renderer, camera, get visual() { return visual; } };
   let started = false;
   report.setContext(() => ({
     Airport: lesson.ap.icao, Aircraft: visualId, Livery: livery, Phase: lesson.phase, 'Time of day': env.time, View: rig.view,
@@ -405,6 +408,7 @@ async function main() {
     const camGround = geo.heightAt(camera.position.x, camera.position.z);
     stream.update(camera.position, camGround);
     villages.update(camera.position, dt, camera.position.y - camGround);
+    runJobs(LOW_MEM ? 3 : 5); // finish streamed tiles a few ms per frame (no hitches)
     const nearAp = airports.reduce((b, a) => (Math.hypot(a.centre[0] - ac.pos.x, a.centre[1] - ac.pos.z) < Math.hypot(b.centre[0] - ac.pos.x, b.centre[1] - ac.pos.z) ? a : b));
     rig.tower = nearAp.tower;
     police.update(t);

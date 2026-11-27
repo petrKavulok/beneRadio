@@ -102,7 +102,7 @@ Pick the model and livery at the bottom left; the choice is saved in the browser
   the interior, panel, seats and 6 liveries. It lives in `public/models/p2002/` as unmodified AC3D/PNG files,
   loaded by `src/models/ac3d.ts`. **Licence: GPL v2+** (`public/models/p2002/COPYING`), so if you redistribute
   the app, keep those files and the credit, and make them available under the GPL.
-- **LKBE Benešov school livery** is the default livery: Czech-flag blue and red, "LKBE" and a flag on the fin, and the registration
+- **Bene livery** (formerly "LKBE Benešov school") is the default livery: Czech-flag blue and red, "LKBE" and a flag on the fin, and the registration
   from the **Reg** box (which is also your radio callsign). It's generated in `src/models/livery.ts` on top of the FlightGear texture.
 - **🔥 Hot Rod Flames** is a 90s/00s custom-paint job: gloss white, with airbrushed yellow → orange → red flame licks and a thin dark-red
   pinstripe on the fuselage, wings and wheel pants. It's generated in `src/models/flames.ts` and clipped to the model's UV triangles.
@@ -110,7 +110,7 @@ Pick the model and livery at the bottom left; the choice is saved in the browser
   and engine-failure training (**U** / **I**). Its own flight numbers are in `src/sim/p2006t.ts`.
   The **🎖 Czech Air Force** livery (`src/models/military.ts`) is two-tone grey with roundels, a fin flash, a 4-digit serial (the Reg box),
   an anti-glare panel and the FLIR turret, radar and SATCOM shown. Callsign: "CZECH AIR FORCE 0731".
-- **Simple model (original)** is the procedural low-poly model from `src/sim/p2002.ts`.
+- **Simple model (original)** is the procedural low-poly model from `src/sim/p2002.ts`. It is no longer offered in the menu and is only used as a fallback if the detailed model fails to load.
 
 Both models share the same physics. Moving surfaces, prop, wheels and nose-wheel steering are animated using the pivot data
 from FlightGear's `p2002.xml`.

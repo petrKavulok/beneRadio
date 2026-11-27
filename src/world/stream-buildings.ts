@@ -1,3 +1,4 @@
+import { later } from './budget';
 // Streamed villages outside the baked islands: OSM buildings and place names from
 // OpenFreeMap vector tiles (OpenMapTiles schema), built around the camera as you fly.
 import * as THREE from 'three';
@@ -78,6 +79,14 @@ export class StreamedVillages {
     this.loading++;
     try {
       const vt = await this.fetchTile(BZ, t.x, t.y);
+      // parsing and geometry building run in the per-frame work budget (towns are split into chunks)
+      await new Promise<void>((done) => later(() => { try { this.parseAndBuild(t, vt); } finally { done(); } }));
+    } catch (e) { t.state = 'failed'; console.warn('buildings tile', t.key, e); }
+    finally { this.loading--; }
+  }
+
+  private parseAndBuild(t: BTile, vt: VectorTile) {
+    {
       const layer = vt.layers.building;
       const list: Bld[] = [];
       if (layer) for (let i = 0; i < layer.length; i++) {
@@ -108,12 +117,16 @@ export class StreamedVillages {
         list.push({ p: pts, h: area < 250 && h < 9 ? 4.5 : h, r: area < 300 && h < 12 ? 1 : 0, k: area > 600 ? 1 : 0 });
       }
       if (list.length) {
-        t.group = buildBuildings(this.geo, list);
-        this.group.add(t.group);
+        const g = (t.group = new THREE.Group());
+        this.group.add(g);
+        const CHUNK = 120;
+        for (let i = 0; i < list.length; i += CHUNK) {
+          const part = list.slice(i, i + CHUNK);
+          later(() => { if (t.group === g && g.parent) g.add(buildBuildings(this.geo, part)); });
+        }
       }
       t.state = 'ready';
-    } catch (e) { t.state = 'failed'; console.warn('buildings tile', t.key, e); }
-    finally { this.loading--; }
+    }
   }
 
   private async loadPlaces(x: number, y: number) {

@@ -1,3 +1,5 @@
+import { inject } from '@vercel/analytics';
+
 import * as THREE from 'three';
 import { GeoData } from './world/data';
 import { buildTerrain, groundOverlay } from './world/terrain';
@@ -31,6 +33,8 @@ import { TouchControls, wantsTouch, touchify } from './ui/touch';
 import { navTo, fmtBrg } from './nav';
 import { Splash } from './ui/splash';
 import { addAircraftLights, AircraftLights } from './models/lights';
+
+inject();
 
 const $ = (id: string) => document.getElementById(id)!;
 const splash = new Splash();

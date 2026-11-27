@@ -24,6 +24,19 @@ Press **H** in the sim for the key list. The basics:
 - **C**: camera view
 - **M**: map
 
+### iPad / touch
+
+On a touch screen the sim switches to touch controls by itself (force it with `?touch=1`, turn it off with `?touch=0`):
+
+- **Stick pad** (left): roll and pitch; drag down to pull. It springs back.
+- **Rudder bar**: rudder and nose-wheel steering.
+- **Throttle lever** (right): drag up and down, it stays put; double-tap for idle.
+- **Buttons**: BRAKE (hold), PARK, FLAPS, TRIM, GEAR, ENGINE, 📻 CALL, VIEW, MAP.
+- **☰**: pauses and opens restart, new lesson, aircraft and airport, sound and voice, full screen and **tilt steering**.
+- **Scenery**: drag to look around, pinch to zoom.
+
+To try it on an iPad on the same Wi-Fi, run `npm run dev:ipad` and open the `Network:` address it prints. Tilt steering needs HTTPS, so it only works on a deployed copy. In Safari, **Share → Add to Home Screen** runs it full screen.
+
 ## World: detail islands + streaming
 
 - **Detail islands** are pre-baked high-resolution areas around the airports: 5 m ČÚZK DMR 5G terrain, 1 m orthophoto, OSM buildings and forests,

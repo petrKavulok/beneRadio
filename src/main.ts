@@ -26,7 +26,8 @@ import { TisemGranny } from './jokes';
 import { AtcMonitor } from './atc-monitor';
 import { Voice } from './voice';
 import { buildPoliceCar, PoliceChase } from './world/police';
-import { HELP_HTML } from './ui/help';
+import { HELP_HTML, TOUCH_HELP_HTML } from './ui/help';
+import { TouchControls, wantsTouch, touchify } from './ui/touch';
 import { navTo, fmtBrg } from './nav';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -153,7 +154,7 @@ async function main() {
     ac.stopEngine(); ac.vel.set(0, 0, 0); ac.omega.set(0, 0, 0);
     document.body.classList.add('busted');
     $('busted').classList.remove('hidden');
-    ($('busted').querySelector('.sub') as HTMLElement).textContent = 'Fine: 5 000 CZK · the granny from Tisem pressed charges · Backspace to try again';
+    ($('busted').querySelector('.sub') as HTMLElement).textContent = 'Fine: 5 000 CZK · the granny from Tisem pressed charges · ' + (touch ? '☰ → Restart to try again' : 'Backspace to try again');
     if (rig.view === 'cockpit') rig.next();
     lesson.radio(`POLICE: ${lesson.callsign}, police! Shut down the engine and step out of the aircraft. You flew low over Tisem twice – you are under arrest.`);
     lesson.score.push('👮 BUSTED – caught by the police at LKBE');
@@ -180,6 +181,26 @@ async function main() {
   syncAudioButtons();
   $('help').innerHTML = HELP_HTML;
   let paused = false, showLabels = true;
+
+  // iPad / touch layout: on for touch devices, or as soon as the screen is touched
+  let touch: TouchControls | null = null;
+  const enableTouch = () => {
+    if (touch) return;
+    touch = new TouchControls(input, canvas, () => ({
+      parking: input.c.parking, flaps: input.c.flaps, gear: ac.A.retractable ? ac.gearPos : null, running: ac.running || ac.starting > 0,
+      throttle: input.c.throttle, trim: input.c.trim, view: rig.view, paused, twin: ac.eng.length > 1, sound: !sound.muted, voice: voice.enabled,
+    }));
+    touch.onPicker = (show) => document.body.classList.toggle('picker', show);
+    $('picker').insertAdjacentHTML('beforeend', '<button class="tgl" id="pickDone">✓ Done</button>');
+    $('pickDone').onclick = () => { document.body.classList.remove('picker'); touch?.closePicker(); };
+    touch.onPause = () => input.fire('pause');
+    $('help').innerHTML = TOUCH_HELP_HTML + HELP_HTML.replace(/^\s*<h2>.*?<\/h2>/s, '');
+    $('help').insertAdjacentHTML('afterbegin', HELP_HTML.match(/<h2>.*?<\/h2>/s)![0]);
+    $('help').addEventListener('click', () => { if (!$('help').classList.contains('hidden')) input.fire('help'); });
+    touch.sync();
+  };
+  if (wantsTouch()) enableTouch(); else addEventListener('touchstart', enableTouch, { once: true });
+  let panelFrac = 0;
 
   input.on((a) => {
     sound.start();
@@ -351,8 +372,12 @@ async function main() {
         stick: { x: input.c.aileron, y: input.c.elevator, rudder: input.c.rudder },
         speeds: ac.A.speeds, rpms: ac.eng.map((e) => e.rpm), engOk: ac.eng.map((e) => e.running), gear: ac.A.retractable ? ac.gearPos : null, navBrg: nav ? nav.brgMag : null,
       }, rig.view === 'cockpit' ? 0.27 : 0.19);
+      const frac = rig.view === 'cockpit' ? 0.27 : 0.19;
+      if (frac !== panelFrac) { panelFrac = frac; document.documentElement.style.setProperty('--ph', `${frac * 100}vh`); }
+      touch?.sync();
       map.draw({ x: ac.pos.x, z: ac.pos.z, hdg: st.hdg }, st.aglFt < 150, lesson.route, lesson.target, nav);
-      $('msg').innerHTML = lesson.text(st) + (nav ? `\n\n<b style="color:#ff7df5">→ ${nav.icao} ${nav.name}</b>: ${nav.distNm.toFixed(1)} NM, course <b>${fmtBrg(nav.brgMag)}°</b>${nav.eteMin !== null ? `, ETE ${Math.round(nav.eteMin)} min` : ''}${nav.distNm < 4 && !st.onGround ? ` – join the ${nav.icao} circuit at ${airports.find((a) => a.icao === nav.icao)!.circuitFt} ft and call ${airports.find((a) => a.icao === nav.icao)!.callName}` : ''}` : '') + (paused ? '\n\n<b>PAUSED</b> – Esc to resume' : '') + `\n\n<span style="opacity:.6">H = help · C = view (${rig.view}) · M = map${input.mouseYoke ? ' · mouse yoke ON' : ''}</span>`;
+      const lessonHtml = touch ? touchify(lesson.text(st)) : lesson.text(st);
+      $('msg').innerHTML = lessonHtml + (nav ? `\n\n<b style="color:#ff7df5">→ ${nav.icao} ${nav.name}</b>: ${nav.distNm.toFixed(1)} NM, course <b>${fmtBrg(nav.brgMag)}°</b>${nav.eteMin !== null ? `, ETE ${Math.round(nav.eteMin)} min` : ''}${nav.distNm < 4 && !st.onGround ? ` – join the ${nav.icao} circuit at ${airports.find((a) => a.icao === nav.icao)!.circuitFt} ft and call ${airports.find((a) => a.icao === nav.icao)!.callName}` : ''}` : '') + (paused ? (touch ? '\n\n<b>PAUSED</b>' : '\n\n<b>PAUSED</b> – Esc to resume') : '') + (touch ? '' : `\n\n<span style="opacity:.6">H = help · C = view (${rig.view}) · M = map${input.mouseYoke ? ' · mouse yoke ON' : ''}</span>`);
     }
     hud.draw(camera, showLabels, lesson.target, st, nav && nav.distNm > 0.6 ? nav : null);
   });

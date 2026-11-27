@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5190 --strictPort",
+    "dev:ipad": "vite --port 5190 --strictPort --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 5190",
     "data:osm": "node scripts/fetch-osm.mjs",

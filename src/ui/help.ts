@@ -34,3 +34,22 @@ Circuit altitude 2460 ft AMSL (field 1322 ft). RWY 06 & 09 left-hand, 24 & 27 ri
 <p style="opacity:.7">Data: orthophoto &amp; DMR 5G elevation © ČÚZK (CC BY 4.0) · elevation tiles © Mapzen/Terrarium (AWS Open Data) · buildings, forests, places © OpenStreetMap contributors (ODbL), vector tiles OpenFreeMap · aerodrome chart: ŘLP ČR VFR Manual · Tecnam P2002 Sierra 3D model © Emmanuel Baranger (helijah), FlightGear FGAddon, GPL v2+.<br>Not for real-world navigation or training credit. Holding point positions are approximate.</p>
 <p>Press <b>H</b> to close.</p>
 `;
+
+/** Touch layout (iPad), shown above the key table on touch devices. */
+export const TOUCH_HELP_HTML = `
+<h3>iPad / touch controls</h3>
+<table>
+<tr><td>STICK pad (left)</td><td>Drag: left/right = roll, <b>down = pull (nose up)</b>, up = push. Springs back when you let go.</td></tr>
+<tr><td>RUDDER bar</td><td>Rudder + nose-wheel steering on the ground. Springs back.</td></tr>
+<tr><td>Throttle (right)</td><td>Slide up/down – stays where you leave it. Double-tap = idle.</td></tr>
+<tr><td>BRAKE</td><td>Hold to brake · PARK = parking brake</td></tr>
+<tr><td>FLAPS ▲ / ▼</td><td>Flaps up / down (UP → T/O → LDG)</td></tr>
+<tr><td>TRIM UP / DN</td><td>Hold to trim nose up / down</td></tr>
+<tr><td>GEAR</td><td>Landing gear (P2006T)</td></tr>
+<tr><td>ENGINE · 📻 CALL</td><td>Start/stop engine · radio call (taxi request, ready for departure, vacated)</td></tr>
+<tr><td>VIEW · MAP</td><td>Change camera · map size</td></tr>
+<tr><td>Scenery</td><td>Drag with one finger to look around, pinch to zoom</td></tr>
+<tr><td>☰</td><td>Pause menu: restart, new lesson, aircraft &amp; airport, sound/voice, <b>tilt steering</b> (fly by tilting the iPad), full screen</td></tr>
+</table>
+<p>Tip: in Safari use <b>Share → Add to Home Screen</b> for a full-screen app. Tap anywhere to close this help.</p>
+<h3>Keyboard</h3>`;

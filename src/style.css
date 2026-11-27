@@ -11,7 +11,7 @@ canvas { display: block; position: absolute; }
 #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(#2a4058, #0b1520); color: #fff; z-index: 10; }
 #loading .box { text-align: center; }
 #loading h1 { margin: 0 0 8px; font-weight: 600; letter-spacing: 0.04em; }
-#help { position: absolute; inset: 0; margin: auto; width: min(720px, 92vw); height: fit-content; max-height: 90vh; overflow: auto; background: #0d1824ee; color: #e8eef5; padding: 20px 26px; border-radius: 14px; font-size: 14px; z-index: 5; }
+#help { touch-action: pan-y; position: absolute; inset: 0; margin: auto; width: min(720px, 92vw); height: fit-content; max-height: 90vh; overflow: auto; background: #0d1824ee; color: #e8eef5; padding: 20px 26px; border-radius: 14px; font-size: 14px; z-index: 5; }
 #help h2 { margin-top: 0; }
 #help table { border-collapse: collapse; width: 100%; }
 #help td { padding: 3px 8px; border-bottom: 1px solid #ffffff14; }
@@ -34,3 +34,58 @@ canvas { display: block; position: absolute; }
 @keyframes bustedIn { to { transform: scale(1); opacity: 1; } }
 @keyframes bustedSub { to { opacity: 1; } }
 body.busted #gl { filter: grayscale(0.85) contrast(1.15) brightness(0.75); transition: filter 1.2s ease; }
+
+/* ---- touch layout (iPad) ---- */
+:root { --ph: 19vh; }
+#picker { bottom: calc(var(--ph) + 8px); }
+#credit { bottom: calc(var(--ph) + 4px); }
+html, body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
+#touch { position: absolute; inset: 0; pointer-events: none; z-index: 4; font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+#touch > *, #touch button { pointer-events: auto; }
+#touch .pad { position: absolute; background: #0b1520a6; border: 2px solid #ffffff40; touch-action: none; }
+#touch .pad.on { border-color: #ffd54a; }
+#touch .lbl { position: absolute; left: 0; right: 0; text-align: center; color: #fffc; font-size: 11px; font-weight: 600; letter-spacing: .06em; pointer-events: none; }
+#touch .knob { position: absolute; background: radial-gradient(circle at 35% 30%, #ffffff, #c9d3dd 60%, #8a97a4); box-shadow: 0 2px 8px #000a; pointer-events: none; transition: transform .12s ease-out; }
+#touch .pad.on .knob { transition: none; }
+#touch .stick { left: max(18px, env(safe-area-inset-left)); bottom: calc(var(--ph) + 74px); width: 170px; height: 170px; border-radius: 50%;
+  background: radial-gradient(circle, #ffffff10 0 2px, transparent 3px), linear-gradient(#ffffff22, #ffffff22) center / 1px 100% no-repeat, linear-gradient(90deg, #ffffff22, #ffffff22) center / 100% 1px no-repeat, #0b1520a6; }
+#touch .stick .knob { left: calc(50% - 30px); top: calc(50% - 30px); width: 60px; height: 60px; border-radius: 50%; }
+#touch .stick .lbl { top: -20px; text-shadow: 0 1px 3px #000; }
+#touch .rudder { left: max(18px, env(safe-area-inset-left)); bottom: calc(var(--ph) + 14px); width: 170px; height: 46px; border-radius: 23px; }
+#touch .rudder .knob { left: calc(50% - 17px); top: 4px; width: 34px; height: 34px; border-radius: 17px; }
+#touch .rudder .lbl { top: 14px; color: #fff8; }
+#touch .rudder .lbl.l { text-align: left; padding-left: 12px; }
+#touch .rudder .lbl.r { text-align: right; padding-right: 12px; }
+#touch .rudder .lbl.top { top: -20px; text-shadow: 0 1px 3px #000; color: #fffc; }
+#touch .thr { right: max(18px, env(safe-area-inset-right)); bottom: calc(var(--ph) + 14px); width: 66px; height: 250px; border-radius: 14px; overflow: hidden; }
+#touch .thr .fill { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(#2e7d32cc, #1b5e20cc); pointer-events: none; }
+#touch .thr .knob { left: 4px; right: 4px; height: 40px; border-radius: 8px; background: linear-gradient(#222, #000); border: 1px solid #555; transition: none; }
+#touch .thr .lbl { top: 8px; font-size: 13px; }
+#touch button { font: 600 13px system-ui, -apple-system, sans-serif; color: #fff; background: #0b1520c0; border: 2px solid #ffffff40; border-radius: 12px; min-height: 48px; padding: 4px 10px; touch-action: none; }
+#touch button.on { background: #ffd54a; color: #000; border-color: #ffd54a; }
+#touch button.lit { border-color: #6fe37a; color: #b8ffbf; }
+#touch .cluster { position: absolute; right: calc(max(18px, env(safe-area-inset-right)) + 78px); bottom: calc(var(--ph) + 14px); display: grid; grid-template-columns: 96px 96px; gap: 8px; }
+#touch .cluster .big { grid-column: span 2; min-height: 62px; font-size: 16px; background: #5a1010c8; border-color: #ff7a7a80; }
+#touch .cluster .big.on { background: #ff4a4a; color: #fff; }
+#touch [data-k="flapDn"]::after { content: ' · ' attr(data-v); color: #ffd54a; }
+#touch .row { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--ph) + 14px); display: flex; gap: 8px; }
+#touch .row button { min-width: 74px; }
+#touch .menu { position: absolute; inset: 0; background: #000a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 8; }
+#touch .menu .grid { display: grid; grid-template-columns: repeat(3, minmax(170px, 230px)); gap: 10px; }
+#touch .menu button { min-height: 56px; font-size: 15px; text-align: left; padding: 8px 14px; }
+#touch .menu .note { color: #fff; max-width: 640px; text-align: center; font-size: 14px; min-height: 1.4em; }
+body.touch #picker { display: none; flex-wrap: wrap; left: 50%; transform: translateX(-50%); bottom: calc(var(--ph) + 76px); max-width: 92vw; font-size: 14px; z-index: 9; }
+body.touch.picker #picker { display: flex; }
+body.touch #picker select, body.touch #picker input, body.touch #picker .tgl { font-size: 16px; min-height: 36px; }
+body.touch #msg { max-width: 380px; font-size: 13px; }
+body.touch #map { width: 240px; height: 240px; }
+body.touch #map.big { width: min(80vh, 80vw); height: min(80vh, 80vw); }
+@media (max-width: 1000px) {
+  #touch .cluster { bottom: calc(var(--ph) + 76px); }
+}
+@media (max-width: 900px) {
+  #touch .cluster { grid-template-columns: 84px 84px; }
+  #touch .row button { min-width: 60px; font-size: 12px; }
+  #touch .stick { width: 150px; height: 150px; }
+  #touch .rudder { width: 150px; }
+}

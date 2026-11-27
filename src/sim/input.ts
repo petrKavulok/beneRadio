@@ -11,6 +11,8 @@ export class Input {
   keys = new Set<string>();
   mouseYoke = false;
   mouse = { x: 0, y: 0, dragging: false, dx: 0, dy: 0, wheel: 0 };
+  /** on-screen touch controls / tilt (src/ui/touch.ts); null = not in use */
+  touch = { stick: null as null | { x: number; y: number }, tilt: null as null | { x: number; y: number }, rudder: null as null | number, brake: false, trim: 0 };
   private listeners: ((a: Action) => void)[] = [];
   private latch = new Map<string, number>();
   private held(code: string) { return this.keys.has(code) || (this.latch.get(code) ?? 0) > performance.now(); }
@@ -65,6 +67,8 @@ export class Input {
   }
 
   on(l: (a: Action) => void) { this.listeners.push(l); }
+  /** trigger an action as if its key was pressed (touch buttons) */
+  fire(a: Action) { if (a === 'yoke') this.mouseYoke = !this.mouseYoke; this.listeners.forEach((l) => l(a)); }
 
   update(dt: number) {
     const h = (...codes: string[]) => codes.some((x) => this.held(x));
@@ -75,7 +79,12 @@ export class Input {
       return Math.abs(cur) < ret * dt ? 0 : cur - Math.sign(cur) * ret * dt;
     };
     const arrows = h('ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight');
-    if (this.mouseYoke && !arrows) {
+    const T = this.touch, touchStick = T.stick ?? T.tilt;
+    const follow = (cur: number, to: number) => cur + (to - cur) * Math.min(1, dt * 14);
+    if (touchStick && !arrows) {
+      c.aileron = follow(c.aileron, touchStick.x);
+      c.elevator = follow(c.elevator, touchStick.y);
+    } else if (this.mouseYoke && !arrows) {
       const dz = (v: number) => (Math.abs(v) < 0.04 ? 0 : (v - Math.sign(v) * 0.04) / 0.96);
       c.aileron = dz(this.mouse.x);
       c.elevator = dz(this.mouse.y) * 1.1;
@@ -83,12 +92,14 @@ export class Input {
       c.elevator = axis(h('ArrowUp'), h('ArrowDown'), c.elevator, 2.0, 2.2);
       c.aileron = axis(h('ArrowLeft'), h('ArrowRight'), c.aileron, 2.6, 3.0);
     }
-    c.rudder = axis(h('KeyA', 'KeyZ'), h('KeyD', 'KeyX'), c.rudder, 2.5, 3.5);
+    const rudKeys = h('KeyA', 'KeyZ', 'KeyD', 'KeyX');
+    c.rudder = T.rudder !== null && !rudKeys ? follow(c.rudder, T.rudder) : axis(h('KeyA', 'KeyZ'), h('KeyD', 'KeyX'), c.rudder, 2.5, 3.5);
+    if (T.trim) c.trim = Math.max(-1, Math.min(1, c.trim + T.trim * 0.4 * dt));
     if (h('KeyW', 'Equal')) c.throttle = Math.min(1, c.throttle + 0.5 * dt);
     if (h('KeyS', 'Minus')) c.throttle = Math.max(0, c.throttle - 0.5 * dt);
     if (h('BracketRight', 'PageUp') || (h('KeyT') && !this.keys.has('ShiftLeft') && !this.keys.has('ShiftRight'))) c.trim = Math.min(1, c.trim + 0.4 * dt);
     if (h('BracketLeft', 'PageDown') || (h('KeyG') && !this.keys.has('ShiftLeft') && !this.keys.has('ShiftRight'))) c.trim = Math.max(-1, c.trim - 0.4 * dt);
-    const both = h('Space', 'KeyB');
+    const both = h('Space', 'KeyB') || T.brake;
     c.brakeL = both || h('Comma') ? 1 : 0;
     c.brakeR = both || h('Period') ? 1 : 0;
   }

@@ -41,7 +41,7 @@ export const TOUCH_HELP_HTML = `
 <h3>iPad / touch controls</h3>
 <table>
 <tr><td>STICK pad (left)</td><td>Drag: left/right = roll, <b>down = pull (nose up)</b>, up = push. Springs back when you let go.</td></tr>
-<tr><td>RUDDER bar</td><td>Rudder + nose-wheel steering on the ground. Springs back.</td></tr>
+<tr><td>RUDDER bar (right)</td><td>Rudder + nose-wheel steering on the ground – right thumb, so you can steer and use the stick at the same time. Springs back.</td></tr>
 <tr><td>Throttle (right)</td><td>Slide up/down – stays where you leave it. Double-tap = idle.</td></tr>
 <tr><td>BRAKE</td><td>Hold to brake · PARK = parking brake</td></tr>
 <tr><td>FLAPS ▲ / ▼</td><td>Flaps up / down (UP → T/O → LDG)</td></tr>

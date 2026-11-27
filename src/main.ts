@@ -33,6 +33,7 @@ import { HELP_HTML, TOUCH_HELP_HTML } from './ui/help';
 import { TouchControls, wantsTouch, touchify } from './ui/touch';
 import { navTo, fmtBrg } from './nav';
 import { Splash } from './ui/splash';
+import { LOW_MEM } from './quality';
 import { addAircraftLights, AircraftLights } from './models/lights';
 
 inject();
@@ -46,8 +47,8 @@ const progress = splash.progress;
 
 async function main() {
   const canvas = $('gl') as HTMLCanvasElement;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
-  let pixelRatio = Math.min(devicePixelRatio, 1.5);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !LOW_MEM, logarithmicDepthBuffer: true, powerPreference: LOW_MEM ? 'low-power' : 'high-performance' });
+  let pixelRatio = Math.min(devicePixelRatio, LOW_MEM ? 1.25 : 1.5);
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true;
@@ -174,7 +175,7 @@ async function main() {
     ac.stopEngine(); ac.vel.set(0, 0, 0); ac.omega.set(0, 0, 0);
     document.body.classList.add('busted');
     $('busted').classList.remove('hidden');
-    ($('busted').querySelector('.sub') as HTMLElement).textContent = 'Fine: 5 000 CZK · the granny from Tisem pressed charges · ' + (touch ? '☰ → Restart to try again' : 'Backspace to try again');
+    ($('busted').querySelector('.sub') as HTMLElement).textContent = 'Fine: 5 000 CZK · the granny from Tisem pressed charges';
     if (rig.view === 'cockpit') rig.next();
     lesson.radio(`POLICE: ${lesson.callsign}, police! Shut down the engine and step out of the aircraft. You flew low over Tisem twice – you are under arrest.`);
     lesson.score.push('👮 BUSTED – caught by the police at LKBE');
@@ -334,6 +335,9 @@ async function main() {
 
   (window as unknown as { sim: unknown }).sim = { env, ac, input, lesson, atc, chase, get busted() { return busted; }, voice, geo, rig, scene, granny, police, stream, villages, airports, renderer, camera, get visual() { return visual; } };
   let started = false;
+  // big Restart button after a crash or an arrest
+  const restartBtn = $('restartBtn');
+  restartBtn.addEventListener('click', (e) => { (e.currentTarget as HTMLElement).blur(); input.fire('reset'); });
   splash.ready(() => { started = true; sound.start(); });
   const clock = new THREE.Timer();
   let fpsAcc = 0, fpsN = 0;
@@ -352,6 +356,7 @@ async function main() {
       (window as unknown as { simFps: number }).simFps = Math.round(fps);
     }
     if (busted) { bustedT += dt; }
+    restartBtn.classList.toggle('hidden', !(started && (busted || ac.crashed)));
     if (started && !paused && !busted && $('help').classList.contains('hidden')) {
       t += dt;
       input.update(dt);

@@ -31,7 +31,7 @@ export function touchify(html: string) {
     .replace(/<b>R<\/b>/g, '<b>FLAPS ▲</b>')
     .replace(/<b>Shift\+G<\/b>/g, '<b>GEAR</b>')
     .replace(/<b>K<\/b>/g, '<b>☰ → New lesson</b>')
-    .replace(/<b>Backspace<\/b>/g, '<b>☰ → Restart</b>')
+    .replace(/Press <b>Backspace<\/b> or the Restart button/g, 'Tap <b>↺ Restart</b>').replace(/<b>Backspace<\/b>/g, '<b>☰ → Restart</b>')
     .replace('Esc to resume', 'tap ☰ → Resume');
 }
 
@@ -239,12 +239,13 @@ export class TouchControls {
     const ux = -Math.cos(b) * Math.sin(g), uy = Math.sin(b), uz = Math.cos(b) * Math.cos(g);
     const ang = ((screen.orientation?.angle ?? (window as unknown as { orientation?: number }).orientation ?? 0) * Math.PI) / 180;
     const right = ux * Math.cos(ang) - uy * Math.sin(ang), up = ux * Math.sin(ang) + uy * Math.cos(ang);
-    // roll: the right edge going down tilts "up" away from the screen's right axis; pitch: angle of the screen from flat
+    // roll: the right edge going down tilts "up" away from the screen's right axis; pitch: angle of the screen from flat (0 = flat, 90° = upright)
     this.tiltRaw = { roll: -Math.asin(clamp(right)), pitch: Math.atan2(up, uz) };
     if (!this.tiltOn) return;
     if (!this.tilt0) this.tilt0 = { ...this.tiltRaw };
     const dr = this.tiltRaw.roll - this.tilt0.roll;
-    const dp = this.tilt0.pitch - this.tiltRaw.pitch; // flatter than neutral (top edge towards you) = pull
+    // top edge towards you = screen more upright than neutral (angle from flat grows) = pull = nose up
+    const dp = this.tiltRaw.pitch - this.tilt0.pitch;
     this.input.touch.tilt = { x: expo(clamp(dr / (32 * Math.PI / 180))), y: expo(clamp(dp / (22 * Math.PI / 180))) * (this.tiltInvert ? -1 : 1) };
   }
 

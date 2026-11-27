@@ -1,3 +1,4 @@
+import { orthoMaxWidth } from '../quality';
 // Terrain tiles: DMR 5G height + forest canopy displacement, textured with ČÚZK orthophoto.
 import * as THREE from 'three';
 import { GeoData, CANOPY, TileInfo, Region } from './data';
@@ -115,6 +116,14 @@ export async function buildTerrain(geo: GeoData, renderer: THREE.WebGLRenderer, 
   let done = 0;
   await Promise.all(jobs.map(async ({ reg, t }) => {
     const tex = await loader.loadAsync(BASE + reg.dir + t.file);
+    // low-memory mode (phones): downscale the photo before it is uploaded; the original image is dropped
+    const maxW = orthoMaxWidth(t.ring), img = tex.image as HTMLImageElement;
+    if (maxW && img.width > maxW) {
+      const c = document.createElement('canvas');
+      c.width = maxW; c.height = Math.round(img.height * maxW / img.width);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+      (tex as unknown as { image: CanvasImageSource }).image = c;
+    }
     mapTiles.push({ img: tex.image as CanvasImageSource, x0: t.x0, z0: t.z0, x1: t.x1, z1: t.z1, ring: t.ring });
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = aniso;

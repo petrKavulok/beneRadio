@@ -24,6 +24,12 @@ Press **H** in the sim for the key list. The basics:
 - **C**: camera view
 - **M**: map
 
+### Phones (low-memory mode)
+
+iOS Safari closes a tab that uses too much graphics memory. On phones the sim switches to a low-memory mode:
+orthophoto tiles are downscaled (about 250 MB of textures instead of ~840 MB), the shadow map is 1024 px,
+antialiasing is off and the render resolution is capped. Force it with `?lowmem=1`, turn it off with `?lowmem=0`.
+
 ### Time of day & lights
 
 The **Time** selector in the bottom bar switches between ☀️ Midday and 🌇 Summer evening (low sun in the WNW,

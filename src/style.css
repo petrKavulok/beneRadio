@@ -176,3 +176,26 @@ body.touch #map.big { width: min(80vh, 80vw); height: min(80vh, 80vw); }
 #touch .cluster [data-k="trimDn"] { grid-row: 3; grid-column: 2; }
 #touch .cluster [data-k="park"] { grid-row: 4; grid-column: 1; }
 #touch .cluster [data-k="gear"] { grid-row: 4; grid-column: 2; }
+/* Restart button after a crash / arrest */
+#restartBtn { position: absolute; left: 50%; bottom: calc(var(--ph) + 26vh); transform: translateX(-50%); z-index: 7; padding: 14px 34px; border: 0; border-radius: 14px;
+  font: 700 20px system-ui, -apple-system, sans-serif; color: #1a1020; background: linear-gradient(180deg, #ffe0a0, #ff9a5c); box-shadow: 0 8px 30px #0009; cursor: pointer; touch-action: manipulation; }
+#restartBtn:active { transform: translateX(-50%) scale(0.97); }
+/* rudder on the right: left thumb = stick (pitch/roll), right thumb = rudder (+ throttle) — both at once */
+#touch .stick { bottom: calc(var(--ph) + 24px); }
+#touch .rudder { left: auto; right: calc(max(18px, env(safe-area-inset-right)) + 78px); width: 200px; }
+#touch .cluster { bottom: calc(var(--ph) + 86px); }
+#touch .row { left: calc(max(18px, env(safe-area-inset-left)) + 190px); transform: none; }
+@media (max-width: 900px) {
+  #touch .rudder { width: 176px; }
+  /* tall screens (iPad upright): the button row goes above the stick */
+  #touch .row { left: max(18px, env(safe-area-inset-left)); bottom: calc(var(--ph) + 204px); }
+}
+@media (max-height: 500px) {
+  body.touch #map:not(.big) { width: 96px; height: 96px; }
+  #touch .stick { bottom: calc(var(--ph) + 10px); }
+  #touch .rudder { left: auto; right: calc(max(10px, env(safe-area-inset-right)) + 58px); width: 137px; bottom: calc(var(--ph) + 8px); }
+  #touch .cluster { bottom: calc(var(--ph) + 58px); }
+  #touch .cluster button { min-height: 32px; } #touch .cluster .big { min-height: 36px; }
+  #touch .row { left: calc(max(10px, env(safe-area-inset-left)) + 122px); bottom: calc(var(--ph) + 8px); }
+  #touch .row button { min-width: 44px; }
+}

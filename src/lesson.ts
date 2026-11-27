@@ -264,7 +264,7 @@ export class Lesson {
       case 'rollout': step = 'Brake gently (<b>Space</b>), vacate the runway, then press <b>Enter</b> for taxi.'; break;
       case 'vacate': step = 'Taxi to the apron (magenta line), set parking brake <b>P</b>, stop the engine <b>E</b>.'; break;
       case 'parked': step = '🎉 Flight complete! Press <b>K</b> for a new lesson (new wind).'; break;
-      case 'crashed': step = `💥 ${a.crashed}. Press <b>Backspace</b> to restart.`; break;
+      case 'crashed': step = `💥 ${a.crashed}. Press <b>Backspace</b> or the Restart button to try again.`; break;
     }
     const sc = this.score.length ? `\n\n${this.score.join('\n')}` : '';
     return `${head}\n\n${step}${this.notes ? '\n\n' + this.notes : ''}${sc}`;

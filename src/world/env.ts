@@ -1,3 +1,4 @@
+import { LOW_MEM } from '../quality';
 // Sky dome, sun, haze – with time-of-day presets.
 import * as THREE from 'three';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
@@ -43,7 +44,7 @@ export function buildEnvironment(scene: THREE.Scene, renderer: THREE.WebGLRender
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff2dd, 2.1);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.setScalar(LOW_MEM ? 1024 : 2048);
   const s = sun.shadow.camera as THREE.OrthographicCamera;
   s.left = -60; s.right = 60; s.top = 60; s.bottom = -60; s.near = 1; s.far = 1500;
   scene.add(sun, sun.target);

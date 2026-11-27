@@ -5,7 +5,7 @@ import { lkbeAirport } from './lkbe';
 import { airportFromOsm, AirportMeta, OsmAirportJson } from './osm-airport';
 import { toLocal } from '../world/geo';
 
-const BASE = import.meta.env.BASE_URL + 'data/';
+const BASE = (import.meta.env?.BASE_URL ?? '/') + 'data/';
 export const ISLAND_IDS = ['LKPM', 'LKPR', 'LKVL', 'LKKV'];
 
 const pickStands = (filter: (ref: string) => boolean, hdg: number, max = 5) => (all: { ref: string; pos: P2 }[]): Stand[] =>
@@ -20,12 +20,10 @@ const META: Record<string, () => AirportMeta> = {
       // VFR Manual: circuits to the north only (RWY 24 right-hand, RWY 06 left-hand); avoid Občov
       circuit: { '06': 'L', '06L': 'L', '06R': 'L', '24': 'R', '24L': 'R', '24R': 'R' },
       centre: c, tower: { pos: [c[0] - 300, c[1] + 470], height: 8 },
-      // OSM has no apron/stands here: grass parking in front of the hangar row (between TWY C and E)
-      stands: () => {
-        const a: P2 = [c[0] - 362, c[1] + 395], b: P2 = [c[0] - 647, c[1] + 589];
-        const L = Math.hypot(b[0] - a[0], b[1] - a[1]), ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L, nx = -uz, nz = ux; // normal towards the runway (north-west)
-        return [0.2, 0.35, 0.5, 0.65].map((t, i) => ({ id: `P${i + 1}`, pos: [a[0] + ux * L * t + nx * 30, a[1] + uz * L * t + nz * 30] as P2, hdg: 326 }));
-      },
+      // OSM has no apron/stands here: the paved GA apron between TWY D and C, in front of the hangars
+      stands: () => [[-342, 327], [-368, 356], [-305, 304], [-340, 358]].map(([x, z], i) => ({ id: `P${i + 1}`, pos: [c[0] + x, c[1] + z] as P2, hdg: 136 })),
+      // its outline, traced from the orthophoto
+      extraAprons: [{ pts: ([[-383, 357], [-353, 313], [-313, 295], [-273, 323], [-293, 340], [-340, 377], [-363, 393], [-383, 373]] as P2[]).map(([x, z]) => [c[0] + x, c[1] + z] as P2), paved: true }],
     };
   },
   LKVL: () => {
@@ -53,7 +51,8 @@ const META: Record<string, () => AirportMeta> = {
       // circuits south of the runway, away from the city (VFR chart AD 2-LKKV-VFRC)
       circuit: { '11': 'R', '29': 'L', '12': 'R', '30': 'L' },
       centre: c, tower: { pos: [c[0] - 330, c[1] + 140], height: 22 },
-      standApron: 1, // the larger apron west of the terminal
+      // start on APN W (GA apron west of the terminal, stands 10–19); APN M has the airline stands 1–4
+      leadIns: /^1\d$/,
     };
   },
   LKPR: () => {

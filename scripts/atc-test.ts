@@ -28,6 +28,9 @@ const r09 = ap.runways.find((r) => r.id === '09L')!;
 run('lined up on 09L', st(r09.thr[0] + 20, r09.thr[1] - 1, { hdg: rwyHeading(r09), gs: 0 }), 4);
 atc.reset(); const r06 = ap.runways.find((r) => r.id === '06')!; const h06 = rwyHeading(r06) * Math.PI / 180;
 run('lined up on 06 (opposite)', st(r06.thr[0] + Math.sin(h06) * 60, r06.thr[1] - Math.cos(h06) * 60, { hdg: rwyHeading(r06), gs: 0 }), 4);
+// take off from the departure runway (27R on the day's first flight), then fly the circuit for 24
+L.phase = 'takeoff'; L.update(st(0, 0, { onGround: false, aglFt: 100, gs: 70 }), 0.1);
+console.log(`\n# airborne: circuit runway ${L.rwy.id} (in use ${L.inUse.id})`);
 L.phase = 'circuit';
 // right-hand circuit for 24 → downwind is on the right side (heading 060). Fly it on the LEFT side instead:
 const f = { ux: (r24.end[0] - r24.thr[0]), uz: (r24.end[1] - r24.thr[1]) }; const len = Math.hypot(f.ux, f.uz); const ux = f.ux / len, uz = f.uz / len;

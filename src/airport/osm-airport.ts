@@ -2,6 +2,7 @@
 // plus a few hand-written facts (radio, circuit, which stands to use).
 import type { Airport, P2, Runway, Taxiway, HoldingPoint, Stand, Road } from './types';
 import { isPaved } from './types';
+import { TaxiGraph } from './route';
 
 export interface OsmAirportJson {
   runways: { ref: string; width: number; surface: string; pts: P2[] }[];
@@ -28,6 +29,9 @@ export interface AirportMeta {
   extraAprons?: { pts: P2[]; paved: boolean }[];
   /** apron (index into the OSM aprons) to put generated stands on when OSM has none */
   standApron?: number;
+  /** which numbered stand lead-in lines (OSM taxiway ref) to use as stands, e.g. /^1\d$/ */
+  leadIns?: RegExp;
+  runwayUse?: Airport['runwayUse'];
 }
 
 const dist = (a: P2, b: P2) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -65,51 +69,54 @@ export function airportFromOsm(j: OsmAirportJson, m: AirportMeta): Airport {
     const paved = t.surface ? isPaved(t.surface) : pavedField;
     return { name: t.ref || (t.kind === 'taxilane' ? 'apron' : 'TWY'), pts: t.pts, width: t.width > 0 ? t.width : defW(t.kind), paved, lit: paved && longest > 2500 };
   })];
-  // ---- holding points: OSM nodes/lines, else synthesised at the strip edge nearest each threshold
+  // ---- stands
+  let stands: Stand[] = m.stands ? m.stands(j.stands) : j.stands.slice(0, 5).map((s, i) => ({ id: s.ref || `S${i + 1}`, pos: s.pos, hdg: 0 }));
+  if (!stands.length) stands = standsFromLeadIns(j.taxiways, m.leadIns);
+  if (!stands.length && j.aprons.length) stands = standsOnApron(m.standApron !== undefined ? j.aprons[m.standApron].pts : j.aprons[0].pts, runways[0]);
+  // ---- holding points: OSM nodes, else synthesised on a runway connector at the holding distance
   const holds: HoldingPoint[] = [...(m.holds ?? [])];
   const hpFor: Record<string, string> = { ...(m.hpFor ?? {}) };
-  const twyPts = taxiways.flatMap((t) => t.pts.map((p) => ({ p, name: t.name })));
   const nearestTwy = (p: P2) => { let best = { d: Infinity, name: '' }; for (const t of taxiways) { if (!/^[A-Z][A-Z0-9]{0,3}$/.test(t.name) || t.name === 'TWY') continue; for (let i = 0; i + 1 < t.pts.length; i++) { const d = segDist(p, t.pts[i], t.pts[i + 1]); if (d < best.d) best = { d, name: t.name }; } } return best.d < 250 ? best : { d: Infinity, name: '' }; };
+  // taxi cost from the first stand, to prefer connectors the player can actually reach
+  const g = new TaxiGraph({ taxiways, runways, holds: [], stands } as unknown as Airport);
+  const home = stands[0]?.pos ?? m.centre;
   for (const r of runways) {
     if (hpFor[r.id]) continue;
     const L = dist(r.thr, r.end), ux = (r.end[0] - r.thr[0]) / L, uz = (r.end[1] - r.thr[1]) / L;
     const lateral = (p: P2) => Math.abs((p[0] - r.thr[0]) * -uz + (p[1] - r.thr[1]) * ux);
     const along = (p: P2) => (p[0] - r.thr[0]) * ux + (p[1] - r.thr[1]) * uz;
-    let best: { pos: P2; ref: string; score: number } | null = null;
+    let best: { pos: P2; ref: string; score: number; facing: P2; on: string } | null = null;
     for (const h of j.holds) {
       const lat = lateral(h.pos), al = along(h.pos);
       if (lat > r.strip + 120 || al < -150 || al > L * 0.35) continue;
       const score = Math.abs(al) + lat * 0.5;
-      if (!best || score < best.score) best = { pos: h.pos, ref: h.ref, score };
+      if (!best || score < best.score) best = { pos: h.pos, ref: h.ref, score, facing: [r.thr[0] + ux * 40, r.thr[1] + uz * 40], on: h.ref };
     }
     if (!best) {
-      for (const { p } of twyPts) {
-        const lat = lateral(p), al = along(p);
-        if (lat < r.strip / 2 + 8 || lat > r.strip / 2 + 90 || al < -100 || al > L * 0.3) continue;
-        const score = Math.abs(al) + lat;
-        if (!best || score < best.score) best = { pos: p, ref: '', score };
-      }
-    }
-    if (!best) {
-      for (const { p } of twyPts) {
-        const lat = lateral(p), al = along(p);
-        if (lat < r.strip / 2 + 8 || lat > r.strip / 2 + 120 || al < -100 || al > L * 0.8) continue;
-        const score = Math.abs(al) + lat;
-        if (!best || score < best.score) best = { pos: p, ref: '', score };
+      // connectors: taxiways with an end on the runway; the hold goes where the line is H metres from the centreline
+      const H = isPaved(r.surface) ? Math.min(r.strip / 2, 90) : Math.max(r.width / 2 + 20, 30);
+      for (const t of taxiways) for (const rev of [false, true]) {
+        const pts = rev ? [...t.pts].reverse() : t.pts, e = pts[0];
+        if (lateral(e) > r.width / 2 + 45 || along(e) < -20 || along(e) > L + 20) continue;
+        let pos: P2 | null = null;
+        for (let i = 0; i + 1 < pts.length && !pos; i++) {
+          const la = lateral(pts[i]), lb = lateral(pts[i + 1]);
+          if (la < H && lb >= H) { const f = (H - la) / (lb - la); pos = [pts[i][0] + f * (pts[i + 1][0] - pts[i][0]), pts[i][1] + f * (pts[i + 1][1] - pts[i][1])]; }
+        }
+        if (!pos) continue;
+        const taxi = g.route(home, pos).length + dist(pos, g.nodes[g.nearestNode(pos)].p);
+        const score = taxi + Math.max(0, along(e)) * 2; // + backtrack to the threshold (runway time counts double)
+        if (!best || score < best.score) best = { pos, ref: '', score, facing: [r.thr[0] + ux * Math.max(0, along(e)), r.thr[1] + uz * Math.max(0, along(e))], on: /^[A-Z][A-Z0-9]{0,3}$/.test(t.name) ? t.name : '' };
       }
     }
     if (!best) continue;
-    const on = nearestTwy(best.pos).name;
+    const on = best.on || nearestTwy(best.pos).name;
     const hid = best.ref || `${on || 'HP'}-${r.id}`;
     const existing = holds.find((h) => h.id === hid);
     if (existing) existing.runways.push(r.id);
-    else holds.push({ id: hid, label: `${best.ref || on || 'Holding point'} – RWY ${r.id}`, pos: best.pos, on: best.ref || on, runways: [r.id], facing: [r.thr[0] + ux * 40, r.thr[1] + uz * 40] });
+    else holds.push({ id: hid, label: `${best.ref || on || 'Holding point'} – RWY ${r.id}`, pos: best.pos, on: best.ref || on, runways: [r.id], facing: best.facing });
     hpFor[r.id] = hid;
   }
-  // ---- stands
-  let stands: Stand[] = m.stands ? m.stands(j.stands) : j.stands.slice(0, 5).map((s, i) => ({ id: s.ref || `S${i + 1}`, pos: s.pos, hdg: 0 }));
-  if (!stands.length) stands = standsFromLeadIns(j.taxiways);
-  if (!stands.length && j.aprons.length) stands = standsOnApron(m.standApron !== undefined ? j.aprons[m.standApron].pts : j.aprons[0].pts, runways[0]);
   // ---- parking area polygon: aprons union (largest apron near the stands)
   const parking = stands.length > 1 && !j.aprons.length ? hull(stands.map((s) => s.pos), 25)
     : j.aprons.length ? (j.aprons.find((a) => stands.some((s) => inPolyLocal(s.pos, a.pts)))?.pts ?? j.aprons.reduce((a, b) => (b.pts.length > a.pts.length ? b : a)).pts)
@@ -119,7 +126,7 @@ export function airportFromOsm(j: OsmAirportJson, m: AirportMeta): Airport {
   return {
     icao: m.icao, name: m.name, radio: m.radio, callName: m.callName, towered: m.towered,
     elevFt: m.elevFt, circuitFt: m.circuitFt, magVar: m.magVar, circuit: m.circuit, centre: m.centre,
-    runways, taxiways, holds, hpFor, stands, parking,
+    runways, taxiways, holds, hpFor, stands, parking, runwayUse: m.runwayUse,
     aprons: [...(m.extraAprons ?? []), ...j.aprons.map((a) => ({ pts: a.pts, paved: isPaved(a.surface) || a.surface === '' }))],
     windsocks: j.windsocks, tower: m.tower, boundary: j.boundary, roads: j.roads,
     groundBox: xs.length ? { x0: Math.min(...xs) - pad, z0: Math.min(...zs) - pad, x1: Math.max(...xs) + pad, z1: Math.max(...zs) + pad } : { x0: m.centre[0] - 1500, z0: m.centre[1] - 1500, x1: m.centre[0] + 1500, z1: m.centre[1] + 1500 },
@@ -157,16 +164,14 @@ function standsOnApron(poly: P2[], rwy: Runway | undefined): Stand[] {
   return out.map((p, i) => ({ id: `S${i + 1}`, pos: p, hdg: mid ? (Math.atan2(mid[0] - p[0], -(mid[1] - p[1])) * 180 / Math.PI + 360) % 360 : 0 }));
 }
 
-/** Stands at the free end of numbered stand lead-in lines (OSM taxiways ref "1", "2", …), facing out. */
-function standsFromLeadIns(twys: OsmAirportJson['taxiways']): Stand[] {
-  const key = (p: P2) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
-  const count = new Map<string, number>();
-  for (const t of twys) for (const p of t.pts) count.set(key(p), (count.get(key(p)) ?? 0) + 1);
+/** Stands at the free end of numbered stand lead-in lines (OSM taxiways ref "1", "2", …), nose to the taxilane. */
+function standsFromLeadIns(twys: OsmAirportJson['taxiways'], only?: RegExp): Stand[] {
   const out: Stand[] = [];
-  for (const t of twys.filter((x) => /^\d+[A-Z]?$/.test(x.ref)).sort((a, b) => parseInt(a.ref) - parseInt(b.ref))) {
+  const others = twys.filter((x) => !/^\d+[A-Z]?$/.test(x.ref));
+  const near = (p: P2) => { let d = Infinity; for (const t of others) for (let i = 0; i + 1 < t.pts.length; i++) d = Math.min(d, segDist(p, t.pts[i], t.pts[i + 1])); return d; };
+  for (const t of twys.filter((x) => /^\d+[A-Z]?$/.test(x.ref) && (!only || only.test(x.ref))).sort((a, b) => parseInt(a.ref) - parseInt(b.ref))) {
     const a = t.pts[0], b = t.pts[t.pts.length - 1];
-    const [free, inner] = (count.get(key(a)) ?? 0) <= 1 ? [a, t.pts[1]] : (count.get(key(b)) ?? 0) <= 1 ? [b, t.pts[t.pts.length - 2]] : [null, null];
-    if (!free || !inner) continue;
+    const [free, inner] = near(a) >= near(b) ? [a, t.pts[1]] : [b, t.pts[t.pts.length - 2]];
     out.push({ id: t.ref, pos: free, hdg: (Math.atan2(inner[0] - free[0], -(inner[1] - free[1])) * 180 / Math.PI + 360) % 360 });
   }
   return out.slice(0, 6);

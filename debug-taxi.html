@@ -1,0 +1,39 @@
+<!doctype html>
+<!-- Dev tool: taxi network of an airport over the orthophoto. http://localhost:5190/debug-taxi.html?ap=LKPM -->
+<html><body style="margin:0;background:#222;color:#eee;font:12px sans-serif">
+<canvas id="c" width="1400" height="1000"></canvas>
+<div id="info" style="position:fixed;top:4px;left:4px;background:#000a;padding:4px;white-space:pre"></div>
+<script type="module">
+import { loadAirports } from '/src/airport/registry.ts';
+import { TaxiGraph } from '/src/airport/route.ts';
+const id = new URLSearchParams(location.search).get('ap') || 'LKPM';
+const ap = (await loadAirports()).find((a) => a.icao === id);
+const g = new TaxiGraph(ap);
+const cv = document.getElementById('c'), x = cv.getContext('2d');
+cv.width = innerWidth; cv.height = innerHeight;
+const q = new URLSearchParams(location.search), zb = q.get('box')?.split(',').map(Number);
+const b = zb ? { x0: ap.centre[0] + zb[0], z0: ap.centre[1] + zb[1], x1: ap.centre[0] + zb[2], z1: ap.centre[1] + zb[3] } : ap.groundBox, s = Math.min(cv.width / (b.x1 - b.x0), cv.height / (b.z1 - b.z0));
+const P = (p) => [(p[0] - b.x0) * s, (p[1] - b.z0) * s];
+const base = id === 'LKBE' ? '/data/' : `/data/${id}/`;
+const man = await (await fetch(base + 'manifest.json')).json();
+const tiles = man.tiles ?? man.regions?.[0]?.tiles ?? [];
+await Promise.all(tiles.filter((t) => t.x1 > b.x0 && t.x0 < b.x1 && t.z1 > b.z0 && t.z0 < b.z1).map((t) => new Promise((ok) => {
+  const im = new Image(); im.onload = () => { const [a0, a1] = P([t.x0, t.z0]), [c0, c1] = P([t.x1, t.z1]); x.globalAlpha = 0.7; x.drawImage(im, a0, a1, c0 - a0, c1 - a1); x.globalAlpha = 1; ok(); }; im.onerror = ok; im.src = base + t.file;
+})));
+const line = (pts, col, w) => { x.strokeStyle = col; x.lineWidth = w; x.beginPath(); pts.forEach((p, i) => { const [u, v] = P(p); i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.stroke(); };
+const dot = (p, col, r, label) => { const [u, v] = P(p); x.fillStyle = col; x.beginPath(); x.arc(u, v, r, 0, 7); x.fill(); if (label) { x.fillStyle = '#fff'; x.fillText(label, u + 5, v - 5); } };
+for (const r of ap.runways) line([r.thr, r.end], '#888', Math.max(2, r.width * s));
+g.nodes.forEach((n) => n.edges.forEach((e) => line([n.p, g.nodes[e.to].p], e.twy.startsWith('RWY') ? '#f80' : '#0ff', 1.5)));
+g.nodes.forEach((n) => { if (n.edges.length === 1) dot(n.p, '#f0f', 3); });
+for (const t of ap.taxiways) { const m = t.pts[Math.floor(t.pts.length / 2)]; const [u, v] = P(m); x.fillStyle = '#ff0'; x.fillText(t.name, u, v); }
+const st = ap.stands[Math.min(1, ap.stands.length - 1)];
+const cols = ['#f00', '#0f0', '#44f', '#fa0', '#f0f', '#0fa'];
+let i = 0, info = `${id}  stands ${ap.stands.map((s) => s.id).join(' ')}\n`;
+for (const [rid, hid] of Object.entries(ap.hpFor)) {
+  const h = ap.holds.find((q) => q.id === hid), r = g.route(st.pos, h.pos), c = cols[i++ % cols.length];
+  line(r.pts, c, 3); info += `RWY ${rid} → ${hid} via ${r.names.join(', ')} ${Math.round(r.length)} m\n`; x.fillStyle = c; x.fillText('■', 4, 0);
+}
+for (const h of ap.holds) dot(h.pos, '#ff0', 5, h.id);
+for (const s2 of ap.stands) dot(s2.pos, '#fff', 4, s2.id);
+document.getElementById('info').textContent = info;
+</script></body></html>

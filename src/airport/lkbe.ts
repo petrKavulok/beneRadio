@@ -85,5 +85,7 @@ export function lkbeAirport(osm: { boundary: P2[]; roads: Road[] }): Airport {
     parking: APRON, aprons: [{ pts: [[-150, 344], [-56, 339], [-54, 356], [-149, 362]], paved: true }],
     windsocks: WINDSOCKS, tower: TOWER, boundary: osm.boundary, roads: osm.roads,
     groundBox: { x0: -560, z0: -460, x1: 520, z1: 500 },
+    // the school flies 06/24 practically always; with 24 in use the day's first take-off is from 27
+    runwayUse: { usual: ['06', '24'], share: 0.99, firstDeparture: { '24': '27R' } },
   };
 }

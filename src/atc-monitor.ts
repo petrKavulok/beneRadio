@@ -17,6 +17,7 @@ function distToRoute(p: P2, pts: P2[]) {
   }
   return best;
 }
+const activePairs = (L: Lesson) => new Set([L.rwy.pair, (L.inUse ?? L.rwy).pair]);
 const onRunway = (r: Runway, x: number, z: number, slack = 2) => { const f = rwyFrame(r, x, z); return Math.abs(f.right) < r.width / 2 + slack && f.along > -5 && f.along < f.length + 5; };
 
 export class AtcMonitor {
@@ -88,12 +89,13 @@ export class AtcMonitor {
 
     // ---- runway incursion: on the runway in use before reporting ready / without clearance ----
     if ((phase === 'taxi' || phase === 'holding') && a.onGround) {
-      const routeUsesRwy = L.routeNames.some((n) => n === `RWY ${L.rwy.pair}`);
-      const inUse = ap.runways.filter((r) => r.pair === L.rwy.pair);
-      if (!routeUsesRwy && inUse.some((r) => onRunway(r, a.x, a.z, 1))) {
+      // active = departure runway and the runway in use (they differ for LKBE's first take-off from 27)
+      const hit = ap.runways.find((r) => activePairs(L).has(r.pair) && !L.routeNames.includes(`RWY ${r.pair}`) && onRunway(r, a.x, a.z, 1));
+      if (hit) {
+        const what = hit.pair === L.rwy.pair ? `runway ${L.rwy.id}` : `runway ${L.inUse.id}, the runway in use`;
         this.call('incursion', 25, (n) => ap.towered
-          ? (n === 1 ? `STOP IMMEDIATELY, you have entered runway ${L.rwy.id} without clearance. Hold position.` : `hold position! You are on an active runway without clearance.`)
-          : (n === 1 ? `you are on runway ${L.rwy.id}. Hold short at ${L.hp.on} and report ready before entering.` : `you are still on the runway without reporting ready – vacate or report ready.`), 'Entered the runway without clearance');
+          ? (n === 1 ? `STOP IMMEDIATELY, you have entered ${what} without clearance. Hold position.` : `hold position! You are on an active runway without clearance.`)
+          : (n === 1 ? `you are on ${what}. Hold short at ${L.hp.on} and report ready before entering.` : `you are still on the runway without reporting ready – vacate or report ready.`), 'Entered the runway without clearance');
       }
       // rolling fast on a runway without clearance = attempted take-off
       if (a.gs > 30 && ap.runways.some((r) => onRunway(r, a.x, a.z, 5))) {
@@ -109,7 +111,8 @@ export class AtcMonitor {
       const wrong = ap.runways.find((r) => r !== L.rwy && onRunway(r, a.x, a.z, 1) && Math.abs(angDiff(a.hdg, rwyHeading(r))) < 15);
       if (wrong && this.hold('lineup', true, dt, 2)) {
         const opposite = wrong.pair === L.rwy.pair;
-        this.call('lineup', 30, () => opposite ? `check your heading – you are lined up on runway ${wrong.id}, the runway in use is ${L.rwy.id}.` : `you are lined up on runway ${wrong.id}. The runway in use is ${L.rwy.id}.`, `Lined up on runway ${wrong.id} instead of ${L.rwy.id}`);
+        const dep = L.rwy !== L.inUse ? 'your departure runway is' : 'the runway in use is';
+        this.call('lineup', 30, () => opposite ? `check your heading – you are lined up on runway ${wrong.id}, ${dep} ${L.rwy.id}.` : `you are lined up on runway ${wrong.id}. ${dep[0].toUpperCase() + dep.slice(1)} ${L.rwy.id}.`, `Lined up on runway ${wrong.id} instead of ${L.rwy.id}`);
       } else if (!wrong) this.timers.set('lineup', 0);
     }
 
@@ -153,7 +156,7 @@ export class AtcMonitor {
     const taxiing = (phase === 'taxi' || phase === 'vacate') && a.onGround;
     const offRoute = taxiing && !!L.route && L.route.length > 1 && distToRoute(pos, L.route) > 20;
     const tooFast = taxiing && a.gs > (grass ? 13 : 20);
-    const onRwyInUse = (phase === 'taxi' || phase === 'holding') && ap.runways.some((r) => r.pair === L.rwy.pair && onRunway(r, a.x, a.z, 3));
+    const onRwyInUse = (phase === 'taxi' || phase === 'holding') && ap.runways.some((r) => activePairs(L).has(r.pair) && !L.routeNames.includes(`RWY ${r.pair}`) && onRunway(r, a.x, a.z, 3));
     const wrongLineup = phase === 'lineup' && ap.runways.some((r) => r !== L.rwy && onRunway(r, a.x, a.z, 2) && Math.abs(angDiff(a.hdg, rwyHeading(r))) < 25);
     let wrongSideNow = false, offAlt = false;
     if (phase === 'circuit' && !a.onGround) {

@@ -24,7 +24,13 @@ export class Lesson {
   phase: Phase = 'preflight';
   windFrom = 240; windKt = 8; qnh = 1015;
   ap!: Airport;
+  /** runway for the current phase (departure runway until airborne, then the one in use) */
   rwy!: Runway; hp!: HoldingPoint;
+  /** runway in use (circuits, landing) */
+  inUse!: Runway;
+  private home!: Airport;
+  /** airports where the day's first take-off has already happened */
+  private departed = new Set<string>();
   route: P2[] | null = null; target: P2 | null = null; routeNames: string[] = [];
   callsign = 'OK-SIM';
   aircraft: AircraftParams = P2002;
@@ -49,7 +55,7 @@ export class Lesson {
     if (!g) this.graphs.set(ap.icao, (g = new TaxiGraph(ap)));
     return g;
   }
-  setAirport(ap: Airport) { this.ap = ap; this.newWeather(); }
+  setAirport(ap: Airport) { this.ap = this.home = ap; this.newWeather(); }
 
   newWeather() {
     this.windFrom = Math.round((Math.random() < 0.7 ? 200 + Math.random() * 90 : 20 + Math.random() * 90) / 10) * 10;
@@ -59,15 +65,31 @@ export class Lesson {
   }
   private pickRunway() {
     let best = -Infinity;
+    const use = this.ap.runwayUse;
+    const usualOnly = !!use && Math.random() < use.share;
     for (const r of this.ap.runways) {
-      if (!this.ap.hpFor[r.id]) continue;
+      if (!this.ap.hpFor[r.id] || (use && usualOnly !== use.usual.includes(r.id))) continue; // the rare day: one of the others
       const head = Math.cos((angDiff(this.windFrom, rwyHeading(r))) * Math.PI / 180) + (r.lit ? 0.25 : 0) + Math.min(0.2, Math.hypot(r.end[0] - r.thr[0], r.end[1] - r.thr[1]) / 20000);
-      if (head > best) { best = head; this.rwy = r; }
+      if (head > best) { best = head; this.inUse = r; }
     }
+    this.setupDeparture();
+  }
+  /** Departure runway + holding point (the day's first take-off may use a different runway). */
+  private setupDeparture() {
+    const first = this.ap.runwayUse?.firstDeparture?.[this.inUse.id];
+    const dep = first && !this.departed.has(this.ap.icao) ? this.ap.runways.find((r) => r.id === first && this.ap.hpFor[r.id]) : undefined;
+    this.rwy = dep ?? this.inUse;
     this.hp = this.ap.holds.find((h) => h.id === this.ap.hpFor[this.rwy.id])!;
   }
+  /** Airborne from the departure airport: from now on fly the circuit of the runway in use. */
+  private airborne() {
+    if (this.ap === this.home) this.departed.add(this.ap.icao);
+    this.rwy = this.inUse;
+  }
+  private get firstDep() { return this.rwy !== this.inUse; }
 
   reset() {
+    if (this.ap !== this.home) { this.ap = this.home; this.pickRunway(); } else this.setupDeparture();
     this.phase = 'preflight'; this.route = null; this.target = null; this.radioLog = []; this.score = [];
     this.downwindCalled = false; this.lastLanding = null; this.onRadio([]);
   }
@@ -104,7 +126,7 @@ export class Lesson {
   }
   private windStr() { return `wind ${String(this.windFrom).padStart(3, '0')} degrees ${this.windKt} knots`; }
   private get st() { return this.ap.towered ? 'TOWER' : 'RADIO'; }
-  private names(n: string[]) { const f = n.filter((x) => x && x !== 'TWY' && x !== 'apron'); return f.length ? f.join(', ') : 'the taxiway'; }
+  private names(n: string[]) { const f = n.filter((x) => x && x !== 'TWY' && x !== 'apron' && !/^\d+[A-Z]?$/.test(x)); return f.length ? f.join(', ') : 'the taxiway'; }
 
   /** Pilot pressed Enter (radio call). */
   call(a: AcState) {
@@ -115,12 +137,15 @@ export class Lesson {
       const type = this.aircraft.engines.length > 1 ? 'P2006T' : 'P2002';
       this.radio(`${cs}: ${ap.callName}, ${cs}, ${type} at the apron, ${ap.towered ? 'VFR, request taxi' : 'request taxi for circuits'}.`,
         ap.towered
-          ? `${st}: ${cs}, runway ${this.rwy.id}, ${this.windStr()}, QNH ${this.qnh}, taxi to holding point ${this.hp.on} via ${this.names(r.names)}.`
-          : `${st}: ${cs}, runway ${this.rwy.id} in use, ${this.windStr()}, QNH ${this.qnh}, taxi to holding point ${this.hp.on} runway ${this.rwy.id} via ${this.names(r.names)}.`);
+          ? `${st}: ${cs}, runway ${this.rwy.id}, ${this.windStr()}, QNH ${this.qnh}, taxi to holding point${this.hp.on ? ' ' + this.hp.on : ''} via ${this.names(r.names)}.`
+          : this.firstDep
+            ? `${st}: ${cs}, runway ${this.inUse.id} in use, departure runway ${this.rwy.id}, ${this.windStr()}, QNH ${this.qnh}, taxi to holding point${this.hp.on ? ' ' + this.hp.on : ''} runway ${this.rwy.id} via ${this.names(r.names)}.`
+            : `${st}: ${cs}, runway ${this.rwy.id} in use, ${this.windStr()}, QNH ${this.qnh}, taxi to holding point${this.hp.on ? ' ' + this.hp.on : ''} runway ${this.rwy.id} via ${this.names(r.names)}.`);
       this.phase = 'taxi';
     } else if (this.phase === 'holding') {
-      this.radio(`${cs}: ${cs}, holding point ${this.hp.on}, ready for departure runway ${this.rwy.id}.`,
-        ap.towered ? `${st}: ${cs}, ${this.windStr()}, runway ${this.rwy.id} cleared for take-off.` : `${st}: ${cs}, runway ${this.rwy.id} free, ${this.windStr()}, report downwind.`);
+      this.radio(`${cs}: ${cs}, holding point${this.hp.on ? ' ' + this.hp.on : ''}, ready for departure runway ${this.rwy.id}.`,
+        ap.towered ? `${st}: ${cs}, ${this.windStr()}, runway ${this.rwy.id} cleared for take-off.`
+          : `${st}: ${cs}, runway ${this.rwy.id} free, ${this.windStr()}, ${this.firstDep ? `after departure join ${this.ap.circuit[this.inUse.id] === 'R' ? 'right' : 'left'}-hand circuit runway ${this.inUse.id}, ` : ''}report downwind.`);
       this.phase = 'lineup'; this.route = null; this.target = this.rwy.thr;
     } else if (this.phase === 'rollout' || this.phase === 'vacate') {
       this.taxiBack(a);
@@ -156,20 +181,20 @@ export class Lesson {
     switch (this.phase) {
       case 'preflight': if (a.running) this.phase = 'started'; break;
       case 'holding':
-        if (!a.onGround && a.aglFt > 30) { this.phase = 'circuit'; this.route = null; this.target = null; this.score.push('Departed without clearance ✗'); }
+        if (!a.onGround && a.aglFt > 30) { this.phase = 'circuit'; this.airborne(); this.route = null; this.target = null; this.score.push('Departed without clearance ✗'); }
         break;
       case 'taxi': {
-        if (!a.onGround && a.aglFt > 30) { this.phase = 'circuit'; this.route = null; this.target = null; this.score.push('Departed without clearance ✗'); break; }
+        if (!a.onGround && a.aglFt > 30) { this.phase = 'circuit'; this.airborne(); this.route = null; this.target = null; this.score.push('Departed without clearance ✗'); break; }
         if (a.gs > (grass ? 14 : 20)) warn(`⚠️ Taxi slower – max ~${grass ? 10 : 15} kt.`);
         const d = Math.hypot(a.x - this.hp.pos[0], a.z - this.hp.pos[1]);
-        if (d < 15 && a.gs < 2) { this.phase = 'holding'; this.route = null; this.score.push(`Reached holding point ${this.hp.on} ✓`); }
+        if (d < 15 && a.gs < 2) { this.phase = 'holding'; this.route = null; this.score.push(`Reached holding point${this.hp.on ? ' ' + this.hp.on : ''} ✓`); }
         break;
       }
       case 'lineup':
         if (Math.abs(f.right) < this.rwy.width / 2 + 3 && f.along > -15 && f.along < f.length * 0.7 && Math.abs(angDiff(a.hdg, rh)) < 12) { this.phase = 'takeoff'; this.target = null; if (f.along > 250) this.score.push(`Intersection departure (${Math.round(f.length - f.along)} m available)`); }
         break;
       case 'takeoff':
-        if (!a.onGround && a.aglFt > 50) { this.phase = 'circuit'; this.score.push('Take-off ✓'); }
+        if (!a.onGround && a.aglFt > 50) { this.score.push(`Take-off RWY ${this.rwy.id} ✓`); this.phase = 'circuit'; this.airborne(); }
         break;
       case 'circuit': {
         const side = this.ap.circuit[this.rwy.id] === 'R' ? 1 : -1;
@@ -183,7 +208,7 @@ export class Lesson {
           const g = rwyFrame(r, a.x, a.z);
           if (g.along < 0 && g.along > -4000 && Math.abs(g.right) < 220 && Math.abs(angDiff(a.hdg, rwyHeading(r))) < 25 && !a.onGround) {
             if (ap !== this.ap) { this.ap = ap; }
-            this.rwy = r; this.phase = 'final';
+            this.rwy = this.inUse = r; this.phase = 'final';
             this.radio(`${this.callsign}: ${ap.callName}, ${this.callsign}, final runway ${r.id}.`, ap.towered ? `${ap.towered ? 'TOWER' : 'RADIO'}: ${this.callsign}, runway ${r.id}, ${this.windStr()}, cleared to land.` : `RADIO: ${this.callsign}, runway ${r.id} free, ${this.windStr()}.`);
             break;
           }
@@ -211,7 +236,7 @@ export class Lesson {
     const hit = this.runwayAt(a.x, a.z, a.hdg, 25);
     if (hit) {
       if (hit.ap === this.ap && hit.r !== this.rwy) this.lastLanding = { planned: this.rwy, actual: hit.r, ap: hit.ap, handled: false };
-      this.ap = hit.ap; this.rwy = hit.r;
+      this.ap = hit.ap; this.rwy = this.inUse = hit.r;
     }
     const f = rwyFrame(this.rwy, a.x, a.z);
     const fpm = Math.round(a.touchdownVs * 196.85);
@@ -223,7 +248,7 @@ export class Lesson {
 
   text(a: AcState) {
     const ap = this.ap;
-    const head = `<b>${ap.icao} ${ap.name}</b> · RWY ${this.rwy.id} in use · ${String(this.windFrom).padStart(3, '0')}/${this.windKt} kt · QNH ${this.qnh}`;
+    const head = `<b>${ap.icao} ${ap.name}</b> · RWY ${this.inUse.id} in use${this.firstDep ? ` (first departure RWY ${this.rwy.id})` : ''} · ${String(this.windFrom).padStart(3, '0')}/${this.windKt} kt · QNH ${this.qnh}`;
     const circ = ap.circuit[this.rwy.id] === 'R' ? 'right-hand' : 'left-hand';
     const others = this.airports.filter((x) => x !== ap).map((x) => x.icao).join(' or ');
     let step = '';

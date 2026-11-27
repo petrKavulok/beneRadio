@@ -37,6 +37,11 @@ export interface Airport {
   tower: { pos: P2; height: number };
   boundary: P2[];
   roads: Road[];
+  /**
+   * Local runway habits: `usual` runways are used `share` of the time (else the best one for the
+   * wind); `firstDeparture` maps the runway in use to the one used for the day's first take-off.
+   */
+  runwayUse?: { usual: string[]; share: number; firstDeparture?: Record<string, string> };
   /** draw the painted ground for this airport (box in local metres) */
   groundBox: { x0: number; z0: number; x1: number; z1: number };
 }

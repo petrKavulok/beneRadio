@@ -1,3 +1,4 @@
+import { freeAfterUpload } from './free-geometry';
 import { orthoMaxWidth } from '../quality';
 // Terrain tiles: DMR 5G height + forest canopy displacement, textured with ČÚZK orthophoto.
 import * as THREE from 'three';
@@ -131,6 +132,7 @@ export async function buildTerrain(geo: GeoData, renderer: THREE.WebGLRenderer, 
     const segs = t.ring <= 1 ? 256 : t.ring === 2 ? 128 : 48;
     const mat = t.ring <= 1 ? withDetail(new THREE.MeshLambertMaterial({ map: tex }), detail, groundOverlay(reg.id)) : new THREE.MeshLambertMaterial({ map: tex });
     const mesh = new THREE.Mesh(tileGeometry(reg, t, segs), mat);
+    freeAfterUpload(mesh);
     mesh.position.set(t.tx0, 0, t.tz0);
     mesh.receiveShadow = t.ring <= 1;
     mesh.matrixAutoUpdate = false; mesh.updateMatrix();

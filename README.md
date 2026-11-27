@@ -40,9 +40,13 @@ The function rejects empty reports, has a hidden bot trap, limits each IP to 5 r
 
 ### Phones (low-memory mode)
 
-iOS Safari closes a tab that uses too much graphics memory. On phones the sim switches to a low-memory mode:
-orthophoto tiles are downscaled (about 250 MB of textures instead of ~840 MB), the shadow map is 1024 px,
-antialiasing is off and the render resolution is capped. Force it with `?lowmem=1`, turn it off with `?lowmem=0`.
+iOS Safari closes (reloads) a tab that uses too much memory. On phones the sim switches to a low-memory mode:
+only the start airport's detail area is loaded (choosing another start airport reloads the app), orthophoto
+tiles are downscaled by distance (1024 / 512 / 256 px), streamed scenery is capped (≤ 220 tiles, evicted 2 s after
+leaving the view, one less detail level, 128 px copies for the moving map, smaller town radius), the height-tile
+cache is 40 instead of 300, the shadow map is 1024 px, antialiasing is off and the render resolution is capped.
+On every device the CPU copy of baked terrain and building meshes is freed once it is on the GPU (~400 MB).
+Force it with `?lowmem=1`, turn it off with `?lowmem=0`.
 
 ### Time of day & lights
 

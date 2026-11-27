@@ -1,3 +1,6 @@
+import { ELEV_CACHE, LOW_MEM } from '../quality';
+// how long an out-of-view tile is kept (frames) and the most tiles kept loaded; phones are much stricter
+const KEEP_FRAMES = LOW_MEM ? 120 : 600, MAX_READY = LOW_MEM ? 220 : 900;
 import { later } from './budget';
 // Streamed Czech-wide terrain: quadtree of Web-Mercator tiles around the camera.
 // Height: Terrarium elevation tiles (AWS open data). Texture: ČÚZK orthophoto (ORTOFOTO_WM).
@@ -7,7 +10,7 @@ import { tileXY, tileLatLon, toLatLon, tileLocal, CZ_BOUNDS, Rect } from './geo'
 
 const ORTHO_URL = (z: number, x: number, y: number) => `https://ags.cuzk.cz/arcgis1/rest/services/ORTOFOTO_WM/MapServer/tile/${z}/${y}/${x}`;
 const ELEV_URL = (z: number, x: number, y: number) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
-const ROOT_Z = 8, MAX_Z = 17, ELEV_MAX_Z = 12, SEG = 24, MAX_LOADS = 6, VIEW_RANGE = 42000;
+const ROOT_Z = 8, MAX_Z = LOW_MEM ? 16 : 17, ELEV_MAX_Z = 12, SEG = 24, MAX_LOADS = 6, VIEW_RANGE = 42000;
 
 interface Node {
   z: number; x: number; y: number; key: string;
@@ -15,6 +18,7 @@ interface Node {
   size: number;             // approx edge length (m)
   state: 'none' | 'loading' | 'ready' | 'failed';
   mesh?: THREE.Mesh;
+  mapImg?: CanvasImageSource; // small copy for the moving map (phones drop the full photo after upload)
   heights?: Float32Array;   // (SEG+1)^2 grid heights
   kids?: Node[];
   used: number;             // last frame shown/needed
@@ -109,7 +113,7 @@ export class StreamedTerrain {
     for (const n of want) { n.mesh!.visible = true; n.used = this.frame; }
     this.shown = want;
     this.pump(cam);
-    if (this.frame % 120 === 0) this.evict();
+    if (this.frame % (LOW_MEM ? 30 : 120) === 0) this.evict();
     this.stats.shown = want.size; this.stats.loading = this.loading;
   }
 
@@ -146,7 +150,7 @@ export class StreamedTerrain {
         return { z, x, y, h };
       }).catch(() => null);
       this.elevCache.set(key, p);
-      if (this.elevCache.size > 300) this.elevCache.delete(this.elevCache.keys().next().value!);
+      while (this.elevCache.size > ELEV_CACHE) this.elevCache.delete(this.elevCache.keys().next().value!);
     }
     return p;
   }
@@ -185,6 +189,13 @@ export class StreamedTerrain {
       if (tex) {
         tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); tex.generateMipmaps = true;
         this.renderer.initTexture(tex); // upload now, inside the budget, not in a random later frame
+        if (LOW_MEM) {
+          // keep only a 128 px copy for the moving map; the full decoded photo is already on the GPU
+          const bmp = tex.image as ImageBitmap, c = document.createElement('canvas');
+          c.width = c.height = 128; c.getContext("2d")!.drawImage(bmp, 0, 0, 128, 128);
+          n.mapImg = c; bmp.close?.();
+          tex.image = { width: bmp.width, height: bmp.height } as unknown as ImageBitmap;
+        }
       }
       n.mesh = this.buildMesh(n, heights, tex ?? this.fallbackTex);
       n.mesh.visible = false;
@@ -266,13 +277,24 @@ export class StreamedTerrain {
     const walk = (n: Node) => { all.push(n); n.kids?.forEach(walk); };
     this.roots.forEach(walk);
     this.stats.nodes = all.length;
-    for (const n of all) {
-      if (n.state === 'ready' && !this.shown.has(n) && n.used < this.frame - 600 && n.z > ROOT_Z) {
-        if (n.mesh) { this.group.remove(n.mesh); n.mesh.geometry.dispose(); const mat = n.mesh.material as THREE.MeshLambertMaterial; if (mat.map !== this.fallbackTex) { (mat.map?.image as ImageBitmap | undefined)?.close?.(); mat.map?.dispose(); } mat.dispose(); }
-        n.mesh = undefined; n.heights = undefined; n.state = 'none';
+    const drop = (n: Node) => {
+      if (n.mesh) {
+        this.group.remove(n.mesh); n.mesh.geometry.dispose();
+        const mat = n.mesh.material as THREE.MeshLambertMaterial;
+        if (mat.map !== this.fallbackTex) { (mat.map?.image as ImageBitmap | undefined)?.close?.(); mat.map?.dispose(); }
+        mat.dispose();
       }
-      if (n.kids && n.used < this.frame - 1200 && n.kids.every((k) => k.state !== 'ready' && k.state !== 'loading' && !k.kids)) n.kids = undefined;
+      n.mesh = undefined; n.heights = undefined; n.mapImg = undefined; n.state = 'none';
+    };
+    const spare = all.filter((n) => n.state === 'ready' && !this.shown.has(n) && n.z > ROOT_Z);
+    for (const n of spare) if (n.used < this.frame - KEEP_FRAMES) drop(n);
+    // hard cap: drop the least recently used spare tiles until under the limit
+    const ready = all.filter((n) => n.state === 'ready').length;
+    if (ready > MAX_READY) {
+      const lru = spare.filter((n) => n.state === 'ready').sort((a, b) => a.used - b.used);
+      for (let k = 0; k < ready - MAX_READY && k < lru.length; k++) drop(lru[k]);
     }
+    for (const n of all) if (n.kids && n.used < this.frame - 2 * KEEP_FRAMES && n.kids.every((k) => k.state !== 'ready' && k.state !== 'loading' && !k.kids)) n.kids = undefined;
   }
 
   /** Ground height from the finest shown tile, or null if nothing is loaded there. */
@@ -292,7 +314,7 @@ export class StreamedTerrain {
   mapTiles() {
     const out: { img: CanvasImageSource; x0: number; z0: number; x1: number; z1: number; ring: number }[] = [];
     for (const n of this.shown) {
-      const img = ((n.mesh?.material as THREE.MeshLambertMaterial)?.map?.image) as CanvasImageSource | undefined;
+      const img = n.mapImg ?? (((n.mesh?.material as THREE.MeshLambertMaterial)?.map?.image) as CanvasImageSource | undefined);
       if (img && (img as HTMLImageElement).width > 2) out.push({ img, ...n.rect, ring: 100 - n.z });
     }
     return out;

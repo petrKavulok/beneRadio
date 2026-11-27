@@ -8,4 +8,7 @@ const devMem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
 export const LOW_MEM = q !== null ? q === '1' : /iPhone|iPod|Android.+Mobile/.test(ua) || smallTouch || devMem <= 3;
 
 /** Max orthophoto tile width per detail ring (null = keep the original size). */
-export const orthoMaxWidth = (ring: number): number | null => (LOW_MEM ? (ring <= 0 ? 1024 : 512) : null);
+export const orthoMaxWidth = (ring: number): number | null => (LOW_MEM ? (ring <= 1 ? 1024 : ring === 2 ? 512 : 256) : null);
+
+/** Phones keep fewer streamed height tiles in memory. */
+export const ELEV_CACHE = LOW_MEM ? 40 : 300;

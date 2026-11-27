@@ -1,3 +1,5 @@
+import { LOW_MEM } from '../quality';
+import { freeAfterUpload } from './free-geometry';
 import { later } from './budget';
 // Streamed villages outside the baked islands: OSM buildings and place names from
 // OpenFreeMap vector tiles (OpenMapTiles schema), built around the camera as you fly.
@@ -10,7 +12,7 @@ import type { GeoData } from './data';
 import type { Place } from '../ui/map';
 
 const TILEJSON = 'https://tiles.openfreemap.org/planet';
-const BZ = 14, BUILD_RADIUS = 4500, KEEP_RADIUS = 7000, PZ = 10;
+const BZ = 14, BUILD_RADIUS = LOW_MEM ? 3500 : 4500, KEEP_RADIUS = LOW_MEM ? 5000 : 7000, PZ = 10;
 
 interface BTile { key: string; x: number; y: number; state: 'loading' | 'ready' | 'failed' | 'waiting'; group?: THREE.Group; centre: [number, number] }
 
@@ -122,7 +124,7 @@ export class StreamedVillages {
         const CHUNK = 120;
         for (let i = 0; i < list.length; i += CHUNK) {
           const part = list.slice(i, i + CHUNK);
-          later(() => { if (t.group === g && g.parent) g.add(buildBuildings(this.geo, part)); });
+          later(() => { if (t.group === g && g.parent) { const b = buildBuildings(this.geo, part); freeAfterUpload(b); g.add(b); } });
         }
       }
       t.state = 'ready';

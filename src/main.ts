@@ -36,6 +36,7 @@ import { Splash } from './ui/splash';
 import { report } from './ui/report';
 import { LOW_MEM } from './quality';
 import { runJobs, pendingJobs, jobTimes } from './world/budget';
+import { freeAfterUpload } from './world/free-geometry';
 import { addAircraftLights, AircraftLights } from './models/lights';
 
 inject();
@@ -65,7 +66,10 @@ async function main() {
   });
 
   progress('Warming up the engine…', 0.02);
-  const geo = await GeoData.load(progress, ISLAND_IDS);
+  // phones: only the start airport's detail island (plus the LKBE area) – all five don't fit in iOS memory
+  const startWanted = localStorage.getItem('lkbe.start') ?? 'LKBE';
+  const loadIslands = LOW_MEM ? ISLAND_IDS.filter((id) => id === startWanted) : ISLAND_IDS;
+  const geo = await GeoData.load(progress, loadIslands);
   const env = buildEnvironment(scene, renderer);
   progress('Loading orthophoto tiles (ČÚZK)…', 0.12);
   const terrain = await buildTerrain(geo, renderer, progress);
@@ -94,9 +98,10 @@ async function main() {
     ov.box.value.set(gnd.box.x0, gnd.box.z0, gnd.box.x1 - gnd.box.x0, gnd.box.z1 - gnd.box.z0);
     groundCanvases.push({ img: gnd.canvas, ...gnd.box, ring: -1 });
   }
-  bldSets.forEach((set) => scene.add(buildBuildings(geo, set)));
+  bldSets.forEach((set) => { const g = buildBuildings(geo, set); freeAfterUpload(g); scene.add(g); });
   const hitsBuilding = obstacleIndex(blds, 1800, airports.map((a) => a.centre));
-  const airfields = airports.map((ap) => buildAirfield(geo, ap));
+  // airport objects only where the detail ground is loaded (on phones other airfields are streamed scenery only)
+  const airfields = airports.filter((ap) => geo.region(ap.centre[0], ap.centre[1])).map((ap) => buildAirfield(geo, ap));
   airfields.forEach((a) => scene.add(a.group));
   // Czech-wide streamed terrain outside the baked islands
   const stream = new StreamedTerrain(renderer, geo.islandRects(), null);
@@ -295,6 +300,8 @@ async function main() {
     ss.onchange = () => {
       startAp = airports.find((a) => a.icao === ss.value) ?? airports[0];
       localStorage.setItem('lkbe.start', startAp.icao); ss.blur();
+      // phones load only the start airport's area: reload to fetch the new one
+      if (!geo.region(startAp.centre[0], startAp.centre[1])) { location.reload(); return; }
       standIdx = Math.min(1, startAp.stands.length - 1);
       lesson.setAirport(startAp); lesson.reset(); resetJoke(); place();
     };

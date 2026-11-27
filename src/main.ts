@@ -110,6 +110,12 @@ async function main() {
   livreg.military = localStorage.getItem('lkbe.serial') || '0731';
   let visual: AircraftVisual;
   let parked: AircraftVisual[] = [];
+  /** time of day from the bottom bar or the touch menu (remembered) */
+  const setTime = (t: TimeOfDay) => {
+    env.setTime(t); localStorage.setItem('lkbe.time', env.time);
+    const sel = document.getElementById('selTime') as HTMLSelectElement | null;
+    if (sel) sel.value = env.time;
+  };
   let acLights: AircraftLights;
   async function loadVisuals() {
     if (visual) scene.remove(visual.root);
@@ -205,12 +211,13 @@ async function main() {
     msg.addEventListener('pointerdown', () => { msg.classList.toggle('folded'); localStorage.setItem('lkbe.msgFolded', msg.classList.contains('folded') ? '1' : '0'); });
     touch = new TouchControls(input, canvas, () => ({
       parking: input.c.parking, flaps: input.c.flaps, gear: ac.A.retractable ? ac.gearPos : null, running: ac.running || ac.starting > 0,
-      throttle: input.c.throttle, trim: input.c.trim, view: rig.view, paused, twin: ac.eng.length > 1, sound: !sound.muted, voice: voice.enabled,
+      throttle: input.c.throttle, trim: input.c.trim, view: rig.view, paused, time: TIME_OPTIONS.find((o) => o.id === env.time)!.label, twin: ac.eng.length > 1, sound: !sound.muted, voice: voice.enabled,
     }));
     touch.onPicker = (show) => document.body.classList.toggle('picker', show);
     $('picker').insertAdjacentHTML('beforeend', '<button class="tgl" id="pickDone">✓ Done</button>');
     $('pickDone').onclick = () => { document.body.classList.remove('picker'); touch?.closePicker(); };
     touch.onPause = () => input.fire('pause');
+    touch.onTime = () => { const i = TIME_OPTIONS.findIndex((o) => o.id === env.time); setTime(TIME_OPTIONS[(i + 1) % TIME_OPTIONS.length].id); };
     $('help').innerHTML = TOUCH_HELP_HTML + HELP_HTML.replace(/^\s*<h2>.*?<\/h2>/s, '');
     $('help').insertAdjacentHTML('afterbegin', HELP_HTML.match(/<h2>.*?<\/h2>/s)![0]);
     $('help').addEventListener('click', () => { if (!$('help').classList.contains('hidden')) input.fire('help'); });
@@ -259,7 +266,7 @@ async function main() {
       <button id="btnVoice" class="tgl" title="Controller voice on/off (V)"></button>`;
     const st = $('selTime') as HTMLSelectElement;
     st.value = env.time;
-    st.onchange = () => { env.setTime(st.value as TimeOfDay); localStorage.setItem('lkbe.time', env.time); st.blur(); };
+    st.onchange = () => { setTime(st.value as TimeOfDay); st.blur(); };
     const sn = $('selNav') as HTMLSelectElement;
     sn.onchange = () => {
       navAp = airports.find((a) => a.icao === sn.value) ?? null; sn.blur();

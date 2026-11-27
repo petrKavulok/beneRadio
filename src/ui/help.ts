@@ -51,7 +51,7 @@ export const TOUCH_HELP_HTML = `
 <tr><td>VIEW · MAP</td><td>Change camera · map size</td></tr>
 <tr><td>Scenery</td><td>Drag with one finger to look around, pinch to zoom</td></tr>
 <tr><td>Lesson box · radio</td><td>Tap the lesson box (top left) to fold it into a small pill and back · tap the controller messages to clear them</td></tr>
-<tr><td>☰</td><td>Pause menu: restart, new lesson, aircraft &amp; airport, sound/voice, <b>tilt steering</b> (fly by tilting the iPad), full screen</td></tr>
+<tr><td>☰</td><td>Pause menu: restart, new lesson, aircraft &amp; airport, <b>time of day</b>, sound/voice, <b>tilt steering</b> (fly by tilting the iPad), full screen</td></tr>
 </table>
 <p>Tip: in Safari use <b>Share → Add to Home Screen</b> for a full-screen app. Tap anywhere to close this help.</p>
 <h3>Keyboard</h3>`;

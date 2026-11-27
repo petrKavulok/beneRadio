@@ -17,13 +17,13 @@ canvas { display: block; position: absolute; }
 @keyframes twinkle { 50% { opacity: 0.25; } }
 #loading .clouds.c1 { animation: drift 90s linear infinite alternate; } #loading .clouds.c2 { animation: drift 60s linear infinite alternate-reverse; }
 @keyframes drift { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
-#loading .cl { animation: roll 0.9s linear infinite; }
-@keyframes roll { to { stroke-dashoffset: -86; } }
 #loading .edge circle { animation: twinkle 2.4s ease-in-out infinite; } #loading .edge circle:nth-child(odd) { animation-delay: -1.2s; }
 #loading .plane { position: absolute; left: 50%; top: 47%; width: min(60vw, 46vh, 460px); transform: translate(-50%, -50%); animation: climb 7s ease-in-out infinite; filter: drop-shadow(0 6px 18px #0006); }
 #loading .plane svg { display: block; width: 100%; height: auto; overflow: visible; }
 @keyframes climb { 0%, 100% { transform: translate(-50%, -50%) rotate(-2.5deg); } 50% { transform: translate(-50%, calc(-50% - 14px)) rotate(2deg); } }
-#loading .prop { transform-origin: 300px 118px; animation: spin 0.12s linear infinite; }
+#loading .plane > svg { position: relative; z-index: 1; }
+#loading .prop { position: absolute; z-index: 0; left: 39.71%; top: 35%; width: 20.57%; aspect-ratio: 1; margin-top: -10.29%; animation: spin 0.32s linear infinite; will-change: transform; pointer-events: none; }
+#loading .prop svg { display: block; width: 100%; height: 100%; }
 @keyframes spin { to { transform: rotate(360deg); } }
 #loading .nav { animation: navglow 2s ease-in-out infinite; } @keyframes navglow { 50% { opacity: 0.55; } }
 #loading .strobe { opacity: 0; animation: strobe 1.6s steps(1) infinite; } @keyframes strobe { 0% { opacity: 1; } 6% { opacity: 0; } }

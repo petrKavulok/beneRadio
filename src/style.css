@@ -8,9 +8,51 @@ canvas { display: block; position: absolute; }
 #msg { position: absolute; left: 12px; top: 12px; max-width: 460px; color: #fff; background: #0009; padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.45; white-space: pre-line; pointer-events: none; }
 #msg b { color: #ffd54a; }
 #radio { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; color: #9fffb0; background: #000b; padding: 6px 12px; border-radius: 8px; font: 13px/1.4 ui-monospace, Menlo, monospace; max-width: 60vw; display: none; pointer-events: none; }
-#loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(#2a4058, #0b1520); color: #fff; z-index: 10; }
-#loading .box { text-align: center; }
-#loading h1 { margin: 0 0 8px; font-weight: 600; letter-spacing: 0.04em; }
+/* ---- splash / loading screen ---- */
+#loading { position: absolute; inset: 0; z-index: 10; overflow: hidden; color: #fff; background: #0a1226; transition: opacity 0.9s ease, transform 0.9s ease; cursor: default; }
+#loading.out { opacity: 0; transform: scale(1.04); pointer-events: none; }
+#loading .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+#loading .stars circle { animation: twinkle 3.2s ease-in-out infinite; }
+#loading .stars circle:nth-child(2n) { animation-delay: -1.3s; } #loading .stars circle:nth-child(3n) { animation-delay: -2.1s; }
+@keyframes twinkle { 50% { opacity: 0.25; } }
+#loading .clouds.c1 { animation: drift 90s linear infinite alternate; } #loading .clouds.c2 { animation: drift 60s linear infinite alternate-reverse; }
+@keyframes drift { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
+#loading .cl { animation: roll 0.9s linear infinite; }
+@keyframes roll { to { stroke-dashoffset: -86; } }
+#loading .edge circle { animation: twinkle 2.4s ease-in-out infinite; } #loading .edge circle:nth-child(odd) { animation-delay: -1.2s; }
+#loading .plane { position: absolute; left: 50%; top: 47%; width: min(60vw, 46vh, 460px); transform: translate(-50%, -50%); animation: climb 7s ease-in-out infinite; filter: drop-shadow(0 6px 18px #0006); }
+#loading .plane svg { display: block; width: 100%; height: auto; overflow: visible; }
+@keyframes climb { 0%, 100% { transform: translate(-50%, -50%) rotate(-2.5deg); } 50% { transform: translate(-50%, calc(-50% - 14px)) rotate(2deg); } }
+#loading .prop { transform-origin: 300px 118px; animation: spin 0.12s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading .nav { animation: navglow 2s ease-in-out infinite; } @keyframes navglow { 50% { opacity: 0.55; } }
+#loading .strobe { opacity: 0; animation: strobe 1.6s steps(1) infinite; } @keyframes strobe { 0% { opacity: 1; } 6% { opacity: 0; } }
+#loading .brand { position: absolute; left: 0; right: 0; top: max(7vh, env(safe-area-inset-top)); text-align: center; text-shadow: 0 4px 30px #0a122688; animation: rise 1s cubic-bezier(.2,.8,.2,1) both; }
+#loading .kicker { font-size: clamp(11px, 1.4vw, 15px); font-weight: 600; letter-spacing: 0.42em; text-transform: uppercase; color: #ffd9a8; opacity: 0.85; padding-left: 0.42em; }
+#loading h1 { margin: 0.05em 0 0.08em; font-size: clamp(60px, 11vw, 150px); line-height: 1; font-weight: 800; letter-spacing: -0.035em; }
+#loading h1 span { background: linear-gradient(180deg, #ffe2a0, #ff9a5c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#loading .tag { font-size: clamp(13px, 1.6vw, 18px); color: #e9dcef; opacity: 0.85; }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+#loading .card { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: max(6vh, calc(env(safe-area-inset-bottom) + 16px)); width: min(520px, 88vw); box-sizing: border-box;
+  padding: 16px 20px 14px; border-radius: 16px; background: #0b1124a8; border: 1px solid #ffffff1f; box-shadow: 0 10px 40px #0008; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: rise 1s 0.15s cubic-bezier(.2,.8,.2,1) both; }
+#loading .row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: #dfe6f2; }
+#loading #loadtxt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#loading #loadpct { font: 600 13px ui-monospace, Menlo, monospace; color: #ffd27f; }
+#loading .bar { margin: 9px 0 12px; height: 6px; border-radius: 3px; background: #ffffff14; overflow: hidden; }
+#loading .bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, #ff8a5c, #ffd27f); box-shadow: 0 0 12px #ffb46a; transition: width 0.5s ease; }
+#loading .tip { display: flex; gap: 10px; align-items: baseline; min-height: 2.9em; font-size: 13px; line-height: 1.45; color: #c9d2e3; }
+#loading .tip > b { flex: none; font-size: 10px; letter-spacing: 0.12em; color: #0b1124; background: #ffd27f; padding: 1px 6px; border-radius: 4px; }
+#loading .tip span b { color: #ffd27f; }
+#loading .tip span { transition: opacity 0.4s ease; } #loading .tip span.fade { opacity: 0; }
+#loading #loadgo { display: none; width: 100%; margin-top: 4px; padding: 13px; border: 0; border-radius: 12px; font: 700 17px system-ui, sans-serif; letter-spacing: 0.02em; color: #1a1020;
+  background: linear-gradient(180deg, #ffe0a0, #ff9a5c); box-shadow: 0 6px 24px #ff9a5c66; cursor: pointer; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 6px 34px #ff9a5caa; transform: translateY(-1px); } }
+#loading .hint { display: none; margin-top: 8px; text-align: center; font-size: 11px; color: #9aa6bd; }
+#loading.ready { cursor: pointer; }
+#loading.ready .tip { display: none; } #loading.ready #loadgo { display: block; } #loading.ready .hint { display: block; }
+#loading.error .bar i { background: #ff5a5a; box-shadow: none; } #loading.error #loadtxt { color: #ff9a9a; white-space: normal; }
+@media (max-height: 560px) { #loading .brand { top: 3vh; } #loading h1 { font-size: clamp(44px, 9vw, 90px); } #loading .plane { top: 50%; width: min(30vw, 40vh); } #loading .card { bottom: 3vh; padding: 10px 16px; } }
+@media (prefers-reduced-motion: reduce) { #loading *, #loading { animation: none !important; transition: none !important; } }
 #help { touch-action: pan-y; position: absolute; inset: 0; margin: auto; width: min(720px, 92vw); height: fit-content; max-height: 90vh; overflow: auto; background: #0d1824ee; color: #e8eef5; padding: 20px 26px; border-radius: 14px; font-size: 14px; z-index: 5; }
 #help h2 { margin-top: 0; }
 #help table { border-collapse: collapse; width: 100%; }

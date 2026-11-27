@@ -104,7 +104,7 @@ function withDetail(mat: THREE.MeshLambertMaterial, detail: THREE.Texture, ov: G
   return mat;
 }
 
-export async function buildTerrain(geo: GeoData, renderer: THREE.WebGLRenderer, progress: (s: string) => void) {
+export async function buildTerrain(geo: GeoData, renderer: THREE.WebGLRenderer, progress: (s: string, f?: number) => void) {
   const group = new THREE.Group();
   group.name = 'terrain';
   const loader = new THREE.TextureLoader();
@@ -126,7 +126,8 @@ export async function buildTerrain(geo: GeoData, renderer: THREE.WebGLRenderer, 
     mesh.receiveShadow = t.ring <= 1;
     mesh.matrixAutoUpdate = false; mesh.updateMatrix();
     group.add(mesh);
-    if (++done % 12 === 0) progress(`Terrain tiles ${done}/${jobs.length}…`);
+    ++done;
+    progress(`Terrain tiles ${done}/${jobs.length}…`, 0.12 + 0.6 * done / jobs.length);
   }));
   // Last-resort ground far below everything (only visible if streaming is unavailable), lost in haze.
   const far = new THREE.Mesh(new THREE.CircleGeometry(250000, 64), new THREE.MeshLambertMaterial({ color: 0x5d6e47 }));

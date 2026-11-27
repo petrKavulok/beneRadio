@@ -1,4 +1,4 @@
-# beneRadio – Tecnam flight sim: LKBE Benešov, LKPM Příbram, LKPR Praha, LKVL Vlašim, LKKV Karlovy Vary
+# BeneSim – Tecnam flight sim: LKBE Benešov, LKPM Příbram, LKPR Praha, LKVL Vlašim, LKKV Karlovy Vary
 
 A browser flight sim for a flight school at **LKBE Benešov**. You start on the apron, taxi to the real
 holding points, fly a circuit over the real terrain and villages, land, and taxi back.

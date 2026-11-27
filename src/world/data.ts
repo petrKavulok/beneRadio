@@ -71,9 +71,9 @@ export class GeoData {
   stream: HeightSource | null = null;
   private last: Region | null = null;
 
-  static async load(progress: (s: string) => void, islands: string[]) {
+  static async load(progress: (s: string, f?: number) => void, islands: string[]) {
     const g = new GeoData();
-    progress('Loading elevation (ČÚZK DMR 5G)…');
+    progress('Loading elevation (ČÚZK DMR 5G)…', 0.04);
     // LKBE region (original layout in data/)
     const m = await (await fetch(BASE + 'manifest.json')).json();
     const half = m.half as number;

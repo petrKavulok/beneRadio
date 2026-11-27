@@ -29,9 +29,11 @@ import { buildPoliceCar, PoliceChase } from './world/police';
 import { HELP_HTML, TOUCH_HELP_HTML } from './ui/help';
 import { TouchControls, wantsTouch, touchify } from './ui/touch';
 import { navTo, fmtBrg } from './nav';
+import { Splash } from './ui/splash';
 
 const $ = (id: string) => document.getElementById(id)!;
-const progress = (s: string) => { $('loadtxt').textContent = s; };
+const splash = new Splash();
+const progress = splash.progress;
 
 async function main() {
   const canvas = $('gl') as HTMLCanvasElement;
@@ -50,14 +52,15 @@ async function main() {
     camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   });
 
+  progress('Warming up the engine…', 0.02);
   const geo = await GeoData.load(progress, ISLAND_IDS);
   const env = buildEnvironment(scene);
-  progress('Loading orthophoto tiles (ČÚZK)…');
+  progress('Loading orthophoto tiles (ČÚZK)…', 0.12);
   const terrain = await buildTerrain(geo, renderer, progress);
   scene.add(terrain.group);
-  progress('Loading airports…');
+  progress('Loading airports…', 0.74);
   const airports = await loadAirports();
-  progress('Building villages…');
+  progress('Building villages…', 0.8);
   const base = import.meta.env.BASE_URL + 'data/';
   const json = <T,>(f: string) => fetch(base + f).then((r) => (r.ok ? (r.json() as Promise<T>) : ([] as unknown as T)));
   const regionDirs = geo.regions.map((r) => r.dir);
@@ -66,7 +69,7 @@ async function main() {
   const seen = new Set<string>();
   const places = placeSets.flat().filter((p) => { const k = p.n + Math.round(p.x / 500) + ',' + Math.round(p.z / 500); if (seen.has(k)) return false; seen.add(k); return true; });
   const blds = bldSets.flat();
-  progress('Painting the airfields…');
+  progress('Painting the airfields…', 0.86);
   const groundCanvases: { img: CanvasImageSource; x0: number; z0: number; x1: number; z1: number; ring: number }[] = [];
   for (const ap of airports) {
     const reg = geo.region(ap.centre[0], ap.centre[1]);
@@ -94,7 +97,7 @@ async function main() {
   let startAp: Airport = airports.find((a) => a.icao === localStorage.getItem('lkbe.start')) ?? airports[0];
 
   // Aircraft visuals (player + parked), switchable: detailed FlightGear P2002 or the original simple model.
-  progress('Loading Tecnam P2002 model…');
+  progress('Rolling the Tecnams out of the hangar…', 0.92);
   const PARKED: [number, number, number, string][] = [[-246, 342, 10, 'Classic-Blue'], [-110, 348, -5, 'orange'], [-70, 340, 175, 'Blue-Yellow']];
   let visualId = (localStorage.getItem('lkbe.visual') as VisualId) || 'detailed';
   const isTwin = () => visualId === 'p2006t';
@@ -297,7 +300,8 @@ async function main() {
   }
 
   (window as unknown as { sim: unknown }).sim = { ac, input, lesson, atc, chase, get busted() { return busted; }, voice, geo, rig, scene, granny, police, stream, villages, airports, renderer, camera, get visual() { return visual; } };
-  $('loading').classList.add('hidden');
+  let started = false;
+  splash.ready(() => { started = true; sound.start(); });
   const clock = new THREE.Timer();
   let fpsAcc = 0, fpsN = 0;
   let acc = 0, t = 0, panelT = 0, lastOnGround = true;
@@ -315,7 +319,7 @@ async function main() {
       (window as unknown as { simFps: number }).simFps = Math.round(fps);
     }
     if (busted) { bustedT += dt; }
-    if (!paused && !busted && $('help').classList.contains('hidden')) {
+    if (started && !paused && !busted && $('help').classList.contains('hidden')) {
       t += dt;
       input.update(dt);
       // wind with gusts, from lesson weather
@@ -383,4 +387,4 @@ async function main() {
   });
 }
 
-main().catch((e) => { progress('Error: ' + (e as Error).message); console.error(e); });
+main().catch((e) => { splash.error((e as Error).message); console.error(e); });

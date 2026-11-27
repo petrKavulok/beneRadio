@@ -1,6 +1,7 @@
 import { inject } from '@vercel/analytics';
 
 import * as THREE from 'three';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 import { GeoData } from './world/data';
 import { buildTerrain, groundOverlay } from './world/terrain';
 import { paintAirportGround } from './world/airfield-ground';
@@ -35,6 +36,9 @@ import { Splash } from './ui/splash';
 import { addAircraftLights, AircraftLights } from './models/lights';
 
 inject();
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
 
 const $ = (id: string) => document.getElementById(id)!;
 const splash = new Splash();

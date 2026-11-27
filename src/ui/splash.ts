@@ -45,10 +45,15 @@ export class Splash {
     this.pct.textContent = `${Math.round(this.f * 100)} %`;
   };
 
-  error(msg: string) {
+  error(msg: string, onReport?: () => void) {
     this.el.classList.add('error');
     this.txt.textContent = 'Error: ' + msg;
     clearInterval(this.tipTimer);
+    if (onReport) {
+      const tip = document.getElementById('loadtip')!;
+      tip.innerHTML = 'Something went wrong while loading. <a href="#" id="loadReport">🐞 Report this problem</a>';
+      document.getElementById('loadReport')!.addEventListener('click', (e) => { e.preventDefault(); onReport(); });
+    }
   }
 
   /** Loading finished: wait for a click / tap / key (also unlocks audio), then fade out. */

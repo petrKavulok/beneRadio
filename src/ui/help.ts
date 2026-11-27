@@ -28,6 +28,7 @@ Fun physics – roughly P2002-like, not a certified simulator.</p>
 <tr><td>Backspace</td><td>Restart at the stand</td></tr>
 <tr><td>Esc</td><td>Pause</td></tr>
 <tr><td>H</td><td>This help</td></tr>
+<tr><td>🐞 Report</td><td>(bottom bar) Report a problem with the app – no account needed, device details are added automatically</td></tr>
 </table>
 <p><b>P2006T:</b> rotate 65 kt · Vy 83 · Vyse 82 (blue line) · Vmc 62 (red line) · approach 75 kt · Vfe 93. Engine failure: pitch for the blue line, rudder on the live engine, bank 3–5° towards it.</p>
 <p><b>P2002 speeds:</b> rotate 50 kt · Vx 60 · Vy 66 · approach 60 kt (flaps LDG) · Vfe 70 · Vne 145 · stall ~42–47 kt.
@@ -51,6 +52,7 @@ export const TOUCH_HELP_HTML = `
 <tr><td>VIEW · MAP</td><td>Change camera · map size</td></tr>
 <tr><td>Scenery</td><td>Drag with one finger to look around, pinch to zoom</td></tr>
 <tr><td>Lesson box · radio</td><td>Tap the lesson box (top left) to fold it into a small pill and back · tap the controller messages to clear them</td></tr>
+<tr><td>🐞 Report a problem</td><td>In the ☰ menu: describe what went wrong – device details are added automatically</td></tr>
 <tr><td>☰</td><td>Pause menu: restart, new lesson, aircraft &amp; airport, <b>time of day</b>, sound/voice, <b>tilt steering</b> (fly by tilting the iPad), full screen</td></tr>
 </table>
 <p>Tip: in Safari use <b>Share → Add to Home Screen</b> for a full-screen app. Tap anywhere to close this help.</p>

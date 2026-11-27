@@ -47,6 +47,8 @@ export class TouchControls {
   onPause: () => void = () => {};
   /** cycle the time of day */
   onTime: () => void = () => {};
+  /** open the problem report form */
+  onReport: () => void = () => {};
   /** the picker was closed from outside (its Done button) */
   closePicker = () => {};
 
@@ -86,6 +88,7 @@ export class TouchControls {
           <button data-m="failL" class="twin">✕ Fail left engine</button>
           <button data-m="failR" class="twin">✕ Fail right engine</button>
           <button data-m="full">⛶ Full screen</button>
+          <button data-m="report">🐞 Report a problem</button>
         </div>
         <p class="note"></p>
       </div>`;
@@ -194,6 +197,7 @@ export class TouchControls {
         case 'help': this.menu(false); this.input.fire('help'); break;
         case 'labels': this.input.fire('labels'); break;
         case 'time': this.onTime(); break;
+        case 'report': this.menu(false); this.onReport(); break;
         case 'sound': this.input.fire('sound'); break;
         case 'voice': this.input.fire('voice'); break;
         case 'failL': case 'failR': this.input.fire(m as Action); this.menu(false); break;

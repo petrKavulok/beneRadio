@@ -33,6 +33,7 @@ import { HELP_HTML, TOUCH_HELP_HTML } from './ui/help';
 import { TouchControls, wantsTouch, touchify } from './ui/touch';
 import { navTo, fmtBrg } from './nav';
 import { Splash } from './ui/splash';
+import { report } from './ui/report';
 import { LOW_MEM } from './quality';
 import { addAircraftLights, AircraftLights } from './models/lights';
 
@@ -226,6 +227,7 @@ async function main() {
     $('picker').insertAdjacentHTML('beforeend', '<button class="tgl" id="pickDone">✓ Done</button>');
     $('pickDone').onclick = () => { document.body.classList.remove('picker'); touch?.closePicker(); };
     touch.onPause = () => input.fire('pause');
+    touch.onReport = () => report.show();
     touch.onTime = () => { const i = TIME_OPTIONS.findIndex((o) => o.id === env.time); setTime(TIME_OPTIONS[(i + 1) % TIME_OPTIONS.length].id); };
     $('help').innerHTML = TOUCH_HELP_HTML + HELP_HTML.replace(/^\s*<h2>.*?<\/h2>/s, '');
     $('help').insertAdjacentHTML('afterbegin', HELP_HTML.match(/<h2>.*?<\/h2>/s)![0]);
@@ -272,7 +274,8 @@ async function main() {
       <label>Time <select id="selTime">${TIME_OPTIONS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('')}</select></label>
       <label>Direct to <select id="selNav"><option value="">—</option>${airports.map((a) => `<option value="${a.icao}">${a.icao}</option>`).join('')}</select></label>
       <button id="btnSound" class="tgl" title="Engine sound on/off (O)"></button>
-      <button id="btnVoice" class="tgl" title="Controller voice on/off (V)"></button>`;
+      <button id="btnVoice" class="tgl" title="Controller voice on/off (V)"></button>
+      <button id="btnReport" class="tgl" title="Report a problem with the app">🐞 Report</button>`;
     const st = $('selTime') as HTMLSelectElement;
     st.value = env.time;
     st.onchange = () => { setTime(st.value as TimeOfDay); st.blur(); };
@@ -282,6 +285,7 @@ async function main() {
       if (navAp) { const n = navTo(navAp, ac.pos.x, ac.pos.z, 0)!; lesson.radio(`${lesson.callsign}: navigating direct ${navAp.icao} ${navAp.name}, course ${fmtBrg(n.brgMag)}, ${n.distNm.toFixed(0)} NM.`); }
     };
     $('btnSound').onclick = (e) => { sound.start(); sound.toggle(); syncAudioButtons(); (e.currentTarget as HTMLElement).blur(); };
+    $('btnReport').onclick = (e) => { (e.currentTarget as HTMLElement).blur(); report.show(); };
     $('btnVoice').onclick = (e) => { voice.toggle(); syncAudioButtons(); (e.currentTarget as HTMLElement).blur(); };
     const ss = $('selStart') as HTMLSelectElement;
     ss.value = startAp.icao;
@@ -335,6 +339,12 @@ async function main() {
 
   (window as unknown as { sim: unknown }).sim = { env, ac, input, lesson, atc, chase, get busted() { return busted; }, voice, geo, rig, scene, granny, police, stream, villages, airports, renderer, camera, get visual() { return visual; } };
   let started = false;
+  report.setContext(() => ({
+    Airport: lesson.ap.icao, Aircraft: visualId, Livery: livery, Phase: lesson.phase, 'Time of day': env.time, View: rig.view,
+    FPS: (window as unknown as { simFps?: number }).simFps, 'Pixel ratio': renderer.getPixelRatio(), Shadows: renderer.shadowMap.enabled,
+    Position: `x ${Math.round(ac.pos.x)} z ${Math.round(ac.pos.z)} · ${Math.round(ac.pos.y * 3.281)} ft · ${Math.round(ac.ias * 1.944)} kt`,
+    'Engine running': ac.running, Crashed: ac.crashed,
+  }));
   // big Restart button after a crash or an arrest
   const restartBtn = $('restartBtn');
   restartBtn.addEventListener('click', (e) => { (e.currentTarget as HTMLElement).blur(); input.fire('reset'); });
@@ -357,7 +367,7 @@ async function main() {
     }
     if (busted) { bustedT += dt; }
     restartBtn.classList.toggle('hidden', !(started && (busted || ac.crashed)));
-    if (started && !paused && !busted && $('help').classList.contains('hidden')) {
+    if (started && !paused && !busted && !report.open && $('help').classList.contains('hidden')) {
       t += dt;
       input.update(dt);
       // wind with gusts, from lesson weather
@@ -430,4 +440,4 @@ async function main() {
   });
 }
 
-main().catch((e) => { splash.error((e as Error).message); console.error(e); });
+main().catch((e) => { console.error(e); splash.error((e as Error).message, () => report.show()); });

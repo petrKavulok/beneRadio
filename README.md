@@ -24,6 +24,20 @@ Press **H** in the sim for the key list. The basics:
 - **C**: camera view
 - **M**: map
 
+### Reporting problems
+
+BeneSim is a work in progress. **🐞 Report** (bottom bar, or ☰ → Report a problem on touch screens, or the link on
+the loading screen if loading fails) opens a form: the reporter describes the problem, and the app adds technical
+details (version, browser, device, GPU, screen, airport, aircraft, lesson phase, FPS, recent errors) – shown before
+sending. **Send report** needs no account: the Vercel function [`api/report.ts`](api/report.ts) files it as a
+GitHub issue in this repository (public). Fallbacks in the form: open the issue on GitHub yourself, or copy the report.
+
+**Setup (once):** create a fine-grained GitHub personal access token with access to *only* this repository and the
+single permission *Issues: Read and write*, add it in Vercel → Project → Settings → Environment Variables as
+`GITHUB_TOKEN` (Production), and redeploy. Without it the form says reporting isn't set up and offers the fallbacks.
+The function rejects empty reports, has a hidden bot trap, limits each IP to 5 reports per 10 minutes and defuses
+@mentions. Test: `node --import tsx scripts/report-test.ts`.
+
 ### Phones (low-memory mode)
 
 iOS Safari closes a tab that uses too much graphics memory. On phones the sim switches to a low-memory mode:
